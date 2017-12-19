@@ -1,0 +1,12 @@
+**0.1.0** (2017.12.19)
+
+* Initial implementation
+* Make basic logger log a standard log message.
+* Add a basic CLI for the development process and for user testing.
+* Use Click for CLI which should be removed later to remove overhead.
+* Support JSON output.
+* Support Pretty Printing JSON.
+* Allow to pass logger name
+* Allow to pass logger level
+* Allow to pass hostname
+* Auto-add base fields to each JSON message: `hostname`, `name`, `pid`, `timestamp`, `level`.
