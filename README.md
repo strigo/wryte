@@ -61,29 +61,16 @@ pen.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
 }
 
 
-
-```
-<!--
-```python
-from wryte import Wryte
-
-pencil = Wryte(name='my_logger', jsonify=True, pretty=False, level='info', enrich=True)
-pencil.warn('TEST_MESSAGE', {'key': 'value'}, 'who=where')
-...
-
-``` -->
-
-
 ## Alternatives
 
 ...
 
 ## Installation
 
-Pen supports Linux, Windows and OSX on Python 2.7 and 3.4+
+Wryte supports Linux, Windows and OSX on Python 2.7 and 3.4+
 
 ```shell
-pip install pen
+pip install wryte
 ```
 
 For dev:
