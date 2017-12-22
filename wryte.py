@@ -37,31 +37,27 @@ LEVEL_CONVERSION = {
 }
 
 
-def _normalize_objects(objects):
-    normalized_objects = []
-    for object in objects:
-        try:
-            if isinstance(object, dict):
-                normalized_objects.append(object)
-            else:
-                normalized_objects.append(json.loads(object))
-        # TODO: Should be a JsonDecoderError
-        except Exception:
-            if '=' in object:
-                normalized_objects.append(_split(object))
-            else:
-                normalized_objects.append({'_bad_object': object})
-    return normalized_objects
+class JsonFormatter(logging.Formatter):
+    # def __init__(self):
+    #     super(JsonFormatter, self).__init__()
+
+    def format(self, record):
+        data = record.msg
+        print(type(data))
+        return json.dumps(data)
 
 
-class Pen(object):
+class Wryte(object):
     def __init__(self,
                  name=None,
                  hostname=None,
                  level='info',
                  pretty=None,
                  jsonify=False):
-        self.obj = self._get_base(name, hostname)
+        if jsonify:
+            self.obj = self._get_base(name, hostname)
+        else:
+            self.obj = {}
         self.pretty = pretty
         self.jsonify = jsonify
 
@@ -69,27 +65,45 @@ class Pen(object):
 
     @staticmethod
     def _get_base(name, hostname):
-        return {
-            'name': name or __name__,
-            'hostname': hostname or socket.gethostname(),
-            'pid': os.getpid(),
-        }
+        return dict(
+            name=name or __name__,
+            hostname=hostname or socket.gethostname(),
+            pid=os.getpid())
+
+    def add_handler(self, handler, formatter='console', level='info'):
+        if level not in LEVEL_CONVERSION.keys():
+            raise WryteError('Level must be one of {0}'.format(
+                LEVEL_CONVERSION.keys()))
+
+        assert formatter in ('console', 'json')
+        if formatter == 'json':
+            formatter = JsonFormatter()
+        else:
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+
+        self.logger.setLevel(LEVEL_CONVERSION[level])
+        self.logger.addHandler(handler)
 
     def _logger(self, name, level):
         if level not in LEVEL_CONVERSION.keys():
-            raise PenError('Level must be one of {0}'.format(
+            raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
 
-        handler = logging.StreamHandler(sys.stdout)
+        logger = logging.getLogger(name)
         if self.jsonify:
             formatter = logging.Formatter('%(message)s')
         else:
             formatter = logging.Formatter(
                 '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        handler = logging.StreamHandler(sys.stdout)
         handler.setFormatter(formatter)
-        logger = logging.getLogger(name)
+
         logger.addHandler(handler)
         logger.setLevel(LEVEL_CONVERSION[level])
+
         return logger
 
     def _format(self, obj):
@@ -99,30 +113,40 @@ class Pen(object):
             return obj
 
     @staticmethod
+    def _normalize_objects(objects):
+        normalized_objects = []
+        for obj in objects:
+            try:
+                if isinstance(obj, dict):
+                    normalized_objects.append(obj)
+                else:
+                    normalized_objects.append(json.loads(obj))
+            # TODO: Should be a JsonDecoderError
+            except Exception:  # NOQA
+                if '=' in obj:
+                    normalized_objects.append(_split(obj))
+                else:
+                    normalized_objects.append({'_bad_object': obj})
+        return normalized_objects
+
+    @staticmethod
     def _get_timestamp():
         return datetime.datetime.now().isoformat()
 
     def _enrich(self, message, level, objects):
-        # objects = list(objects)
-
-        objects = _normalize_objects(objects)
+        objects = self._normalize_objects(objects)
+        obj = self.obj.copy()
+        for part in objects:
+            obj.update(part)
         if self.jsonify:
-            obj = self.obj.copy()
-            obj.update(
-                {
-                    'message': message,
-                    'level': level,
-                    'timestamp': self._get_timestamp()
-                }
-            )
-            for object in objects:
-                obj.update(object)
+            obj.update(dict(
+                message=message,
+                level=level,
+                timestamp=self._get_timestamp()))
             return obj
         else:
-            for object in objects:
-                if isinstance(object, dict):
-                    object = json.dumps(object)
-                message += ' ' + object
+            for k, v in obj.items():
+                message += '\n  {0}={1}'.format(k, v)
             return message
 
     def debug(self, message, *objects):
@@ -150,37 +174,7 @@ class Pen(object):
         self.logger.critical(self._format(obj))
 
 
-def debug(message, *objects):
-    writer = Pen(level='debug')
-    writer.debug(message, objects)
-
-
-def info(message, *objects):
-    writer = Pen(level='info')
-    writer.info(message, *objects)
-
-
-def warn(message, *objects):
-    writer = Pen(level='warning')
-    writer.warn(message, objects)
-
-
-def warning(message, *objects):
-    writer = Pen(level='warning')
-    writer.warning(message, objects)
-
-
-def error(message, *objects):
-    writer = Pen(level='error')
-    writer.error(message, objects)
-
-
-def critical(message, *objects):
-    writer = Pen(level='critical')
-    writer.critical(message, objects)
-
-
-class PenError(Exception):
+class WryteError(Exception):
     pass
 
 
@@ -189,8 +183,8 @@ def main():
     pass
 
 
-def _split(object):
-    parts = object.split('=', 1)
+def _split(obj):
+    parts = obj.split('=', 1)
     kv = {parts[0]: parts[1]}
     return kv
 
@@ -215,8 +209,9 @@ def _split(object):
     type=click.STRING,
     default=False)
 def write(level, message, objects, pretty, jsonify, name):
-    getattr(Pen(name=name, pretty=pretty, level=level, jsonify=jsonify),
-            level.lower())(message, *objects)
+    writer = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify)
+    writer.add_handler(logging.StreamHandler(sys.stdout), 'json', 'debug')
+    getattr(writer, level.lower())(message, *objects)
 
 
 @main.command()
@@ -231,10 +226,9 @@ def write(level, message, objects, pretty, jsonify, name):
     is_flag=True,
     default=False)
 def test(pretty, jsonify):
-    writer = Pen(name='TEST', jsonify=jsonify, pretty=pretty, level='info')
+    writer = Wryte(name='TEST', jsonify=jsonify, pretty=pretty, level='info')
+    writer.add_handler(logging.FileHandler('x.log'), 'json', 'debug')
     # writer.info('My Message', {'x': 'y'}, {'a': 'b'}, 'p=1')
     writer.info('My Message', {'key': 'value'}, 'who=where')
 
-
-# TODO: Allow to pass stream or list of streams
 # TODO: Automatically identify exception objects and log them in a readable way

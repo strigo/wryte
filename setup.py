@@ -11,17 +11,17 @@ def read(*parts):
 
 
 setup(
-    name='pen',
+    name='wryte',
     version="0.1.0",
-    url='https://github.com/nir0s/pen',
+    url='https://github.com/nir0s/wryte',
     author='nir0s',
     author_email='nir36g@gmail.com',
     license='LICENSE',
     platforms='All',
     description='Simply Log',
     long_description=read('README.rst'),
-    py_modules=['pen'],
-    entry_points={'console_scripts': ['pen = pen:main']},
+    py_modules=['wryte'],
+    entry_points={'console_scripts': ['wryte = wryte:main']},
     install_requires=[
         "click>=6.7"
     ],

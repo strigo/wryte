@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Name of this package
-PACKAGENAME = pen
+PACKAGENAME = wryte
 
 # Default tox env when running `make testone`
 TOX_ENV ?= py36
@@ -39,17 +39,13 @@ release: test clean build publish
 .PHONY: test
 test:
 	pip install 'tox>=1.7.2'
-	sed -i 's/iterations=1000000/iterations=100/g' ghost.py
 	tox
-	sed -i 's/iterations=100/iterations=1000000/g' ghost.py
 	@echo "$@ done."
 
 .PHONY: testone
 testone:
 	pip install 'tox>=1.7.2'
-	sed -i 's/iterations=1000000/iterations=100/g' ghost.py
 	tox -e $(TOX_ENV)
-	sed -i 's/iterations=100/iterations=1000000/g' ghost.py
 	@echo "$@ done."
 
 .PHONY: clean
