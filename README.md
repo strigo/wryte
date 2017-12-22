@@ -38,17 +38,17 @@ from wryte import Wryte
 
 pen = Wryte(name='app')
 pen.info('My Message')
-2017-12-22 14:20:14,269 - app - INFO - my message
+2017-12-22T17:02:59.550920 - app - INFO - my message
 
 pen.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
-2017-12-22 10:00:51.386 - app - INFO - My Message
-  key1: value1,
-  key2: value2,
-  who: where
+2017-12-22T17:02:59.550920 - app - INFO - my message
+  key1=value1,
+  key2=value2,
+  who=where
 
-
-pen = Wryte(name='wryte', jsonify=True, pretty=True, level='info', enrich=True)
-pen.warn('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
+...
+pen = Wryte(name='wryte', pretty=True, level='debug', base=True, jsonify=True)
+pen.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
 {
     "hostname": "nir0s-x1",
     "level": "warning",
