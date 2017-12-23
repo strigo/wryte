@@ -36,19 +36,19 @@ from wryte import Wryte
 
 # timestamp, name, level, message
 
-pen = Wryte(name='app')
-pen.info('My Message')
+wryter = Wryte(name='app')
+wryter.info('My Message')
 2017-12-22T17:02:59.550920 - app - INFO - my message
 
-pen.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 2017-12-22T17:02:59.550920 - app - INFO - my message
   key1=value1,
   key2=value2,
   who=where
 
 ...
-pen = Wryte(name='wryte', pretty=True, level='debug', base=True, jsonify=True)
-pen.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
+wryter = Wryte(name='wryte', pretty=True, level='debug', jsonify=True)
+wryter.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
 {
     "hostname": "nir0s-x1",
     "level": "warning",

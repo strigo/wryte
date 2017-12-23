@@ -73,7 +73,7 @@ class ConsoleFormatter(logging.Formatter):
         if self.pretty:
             for key, value in record.items():
                 msg += '\n  {0}={1}'.format(key, value)
-        else:
+        elif record:
             msg += '\n{0}'.format(json.dumps(record, indent=4))
         return msg
 
@@ -119,9 +119,9 @@ class Wryte(object):
         # TODO: Allow to remove field printing in console formatter
         assert formatter in ('console', 'json')
         if formatter == 'json':
-            formatter = JsonFormatter(self.pretty)
+            formatter = JsonFormatter(self.pretty or False)
         else:
-            formatter = ConsoleFormatter(self.pretty)
+            formatter = ConsoleFormatter(self.pretty or True)
         handler.setFormatter(formatter)
 
         self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
@@ -218,5 +218,5 @@ class WryteError(Exception):
     type=click.STRING,
     default=False)
 def main(level, message, objects, pretty, jsonify, name):
-    pen = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify)
-    getattr(pen, level.lower())(message, *objects)
+    wryter = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify)
+    getattr(wryter, level.lower())(message, *objects)
