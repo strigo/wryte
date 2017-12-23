@@ -1,4 +1,4 @@
-# Copyright 2015,2016 Nir Cohen
+# Copyright 2017 Nir Cohen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,15 @@ class Wryte(object):
                  pretty=None,
                  bare=False,
                  jsonify=False):
-        self.obj = self._get_base(name, hostname)
+        """Instantiate a logger instance.
+
+        Either a JSON or a Console handler will be added to the logger
+        unless `bare` is True. By default, a console handler will be added,
+        unless `jsonify` is True.
+
+        If `hostname` isn't provided, it will be retrieved via socket.
+        """
+        self.log_base = self._get_base(name, hostname)
         self.pretty = pretty
 
         self.logger = self._logger(name)
@@ -105,12 +113,19 @@ class Wryte(object):
 
     @staticmethod
     def _get_base(name, hostname):
+        """Generate base fields for each log message.
+        """
         return dict(
             name=name or __name__,
             hostname=hostname or socket.gethostname(),
             pid=os.getpid())
 
     def add_handler(self, handler, formatter='console', level='info'):
+        """Add a handler to the logger instance.
+
+        A handler can be any standard `logging` handler.
+        Formatters are limited to `console` and json`.
+        """
         if level.lower() not in LEVEL_CONVERSION.keys():
             raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
@@ -129,16 +144,26 @@ class Wryte(object):
 
     @staticmethod
     def _logger(name):
+        """Return a named logger instance.
+        """
         logger = logging.getLogger(name)
         return logger
 
     @staticmethod
     def _split_kv(obj):
-        parts = obj.split('=', 1)
-        kv = {parts[0]: parts[1]}
-        return kv
+        """Return dict for key=value.
+        """
+        kv = obj.split('=', 1)
+        return {kv[0]: kv[1]}
 
     def _normalize_objects(self, objects):
+        """Return a normalized dictionary for a list of key value like objects.
+
+        This supports parsing dicts, json strings and key=value pairs.
+
+        e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
+        return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
+        """
         normalized_objects = []
         for obj in objects:
             try:
@@ -159,15 +184,34 @@ class Wryte(object):
         return datetime.datetime.now().isoformat()
 
     def _enrich(self, message, level, objects):
+        """Returns a metadata enriched object which includes the level,
+        message and keys provided in all objects.
+
+        Example:
+
+        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'],
+
+        Return:
+        {
+            'timestamp': '2017-12-22T17:02:59.550920',
+            'level': 'INFO',
+            'message': 'MESSAGE',
+            'key1': 'value1',
+            'key2': 'value2',
+            'name': 'my-logger-name',
+            'hostname': 'my-host',
+            'pid': 51223
+        }
+        """
         objects = self._normalize_objects(objects)
-        obj = self.obj.copy()
+        log = self.log_base.copy()
         for part in objects:
-            obj.update(part)
-        obj.update(dict(
+            log.update(part)
+        log.update(dict(
             message=message,
             level=level.upper(),
             timestamp=self._get_timestamp()))
-        return obj
+        return log
 
     def debug(self, message, *objects):
         obj = self._enrich(message, 'debug', objects)
