@@ -17,6 +17,7 @@
 
 import os
 import sys
+import uuid
 import json
 import socket
 import logging
@@ -100,27 +101,15 @@ class Wryte(object):
         self.logger = self._logger(name)
         if not bare:
             if not jsonify:
-                self.add_handler(
-                    handler=logging.StreamHandler(sys.stdout),
-                    formatter='console',
-                    level=level)
+                self.add_default_console_handler(level)
             else:
-                self.add_handler(
-                    handler=logging.StreamHandler(sys.stdout),
+                self.add_default_json_handler(level)
+
+    def add_handler(self,
+                    handler,
+                    name=None,
                     formatter='json',
-                    level=level)
-        # TODO: If `bare`, deal with when no handler is supplied.
-
-    @staticmethod
-    def _get_base(name, hostname):
-        """Generate base fields for each log message.
-        """
-        return dict(
-            name=name or __name__,
-            hostname=hostname or socket.gethostname(),
-            pid=os.getpid())
-
-    def add_handler(self, handler, formatter='console', level='info'):
+                    level='info'):
         """Add a handler to the logger instance.
 
         A handler can be any standard `logging` handler.
@@ -134,13 +123,38 @@ class Wryte(object):
         # TODO: Allow to remove field printing in console formatter
         assert formatter in ('console', 'json')
         if formatter == 'json':
-            formatter = JsonFormatter(self.pretty or False)
+            _formatter = JsonFormatter(self.pretty or False)
+        elif formatter == 'console':
+            _formatter = ConsoleFormatter(self.pretty or True)
         else:
-            formatter = ConsoleFormatter(self.pretty or True)
-        handler.setFormatter(formatter)
+            _formatter = formatter
+        handler.setFormatter(_formatter)
+        handler.set_name(name or uuid.uuid4())
 
         self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
         self.logger.addHandler(handler)
+        return handler
+
+    def add_default_json_handler(self, level):
+        return self.add_handler(
+            handler=logging.StreamHandler(sys.stdout),
+            formatter='json',
+            level=level)
+
+    def add_default_console_handler(self, level):
+        return self.add_handler(
+            handler=logging.StreamHandler(sys.stdout),
+            formatter='console',
+            level=level)
+
+    @staticmethod
+    def _get_base(name, hostname):
+        """Generate base fields for each log message.
+        """
+        return dict(
+            name=name or __name__,
+            hostname=hostname or socket.gethostname(),
+            pid=os.getpid())
 
     @staticmethod
     def _logger(name):
@@ -212,6 +226,10 @@ class Wryte(object):
             level=level.upper(),
             timestamp=self._get_timestamp()))
         return log
+
+    def log(self, level, message, *objects):
+        obj = self._enrich(message, 'debug', objects)
+        self.logger.log(level, obj)
 
     def debug(self, message, *objects):
         obj = self._enrich(message, 'debug', objects)
