@@ -114,7 +114,7 @@ from logzio.handler import LogzioHandler
 # Generate a debug level console logger named `wryte`.
 wryter = Wryte(name='wryte', level='debug')
 # `formatter` default is `json`. `level` default is `info`.
-wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), formatter='json', level='info')
+wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), name='logzio', formatter='json', level='info')
 
 wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 2017-12-22T17:02:59.550920 - app - INFO - my message
@@ -146,6 +146,28 @@ with open('file.log') as log_file:
 ...
 
 ```
+
+### Listing and removing handlers
+
+Sometimes, you want to add and remove logger handlers dynamically. For instance, let's say that you identified that your application is doing way too many iops on the local disk when logging to a file. You can automatically identify that and remove the file handler and then add it once everything is ok.
+
+You can list and remove handlers currently attached to a logger:
+
+```python
+import logging
+
+wryter = Wryte()
+handler_name = wryter.add_handler(handler=logging.FileHandler('file.log'), formatter='console')
+
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+# ...log some more
+
+wryter.list_handlers()
+['777b9655-e6f9-4b90-8be9-730edeb3afcf', '_console']
+wryter.remove_handler(handler_name)
+```
+
+By default the `_json` or `_console` handlers are added and they can also be removed.
 
 ## Formatters
 

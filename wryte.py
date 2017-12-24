@@ -95,10 +95,12 @@ class Wryte(object):
 
         If `hostname` isn't provided, it will be retrieved via socket.
         """
-        self.log_base = self._get_base(name, hostname)
+        self.name = name or __name__
         self.pretty = pretty
 
+        self.log_base = self._get_base(name, hostname)
         self.logger = self._logger(name)
+
         if not bare:
             if not jsonify:
                 self.add_default_console_handler(level)
@@ -119,6 +121,7 @@ class Wryte(object):
             raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
 
+        name = name or str(uuid.uuid4())
         # TODO: Allow to ignore fields in json formatter
         # TODO: Allow to remove field printing in console formatter
         assert formatter in ('console', 'json')
@@ -129,21 +132,31 @@ class Wryte(object):
         else:
             _formatter = formatter
         handler.setFormatter(_formatter)
-        handler.set_name(name or uuid.uuid4())
+        handler.set_name(name)
 
         self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
         self.logger.addHandler(handler)
-        return handler
+        return name
+
+    def list_handlers(self):
+        return [handler.name for handler in self.logger.handlers]
+
+    def remove_handler(self, name):
+        for handler in self.logger.handlers:
+            if handler.name == name:
+                self.logger.removeHandler(handler)
 
     def add_default_json_handler(self, level):
         return self.add_handler(
             handler=logging.StreamHandler(sys.stdout),
+            name='_json',
             formatter='json',
             level=level)
 
     def add_default_console_handler(self, level):
         return self.add_handler(
             handler=logging.StreamHandler(sys.stdout),
+            name='_console',
             formatter='console',
             level=level)
 
@@ -152,7 +165,7 @@ class Wryte(object):
         """Generate base fields for each log message.
         """
         return dict(
-            name=name or __name__,
+            name=name,
             hostname=hostname or socket.gethostname(),
             pid=os.getpid())
 
