@@ -291,7 +291,7 @@ class WryteError(Exception):
     '-n',
     '--name',
     type=click.STRING,
-    default=False)
+    default='Wryte')
 def main(level, message, objects, pretty, jsonify, name):
     wryter = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify)
     getattr(wryter, level.lower())(message, *objects)

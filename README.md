@@ -14,7 +14,7 @@ Wryte
 
 NOTE: WIP!
 
-Wryte aims to provide a simple API for logging in Python for both simple and JSON based messages.
+Wryte aims to provide a simple API for logging in Python for both human readable and JSON based messages.
 
 The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON strings containing the same information with some additional contextual information over the wire (to a log aggregation service e.g. ELK/Graylog2)
 
@@ -69,7 +69,7 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 On top of logging simple messages, Wryte assumes that you have context you would like to log.
 Instead of making you work to consolidate your data, Wryte will allow you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
 
-You can pass any number of single level of nested dictionaries and `key=value` strings nad even JSON strings, and those will be parsed and add to the log message.
+You can pass any number of single level or nested dictionaries and `key=value` strings and even JSON strings, and those will be parsed and added to the log message.
 
 ```python
 wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
@@ -83,7 +83,7 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 
 It will be often that you would simply want to log JSON strings (for instance, when you log to Elasticsearch or any other document store).
 
-While Wryte uses a special formatter to create that JSON string, you can just use the `jsonify` flag when generating the logger instance. On top of spitting out JSON, it will also add some potentially interesting contexual information (which might be a tad less interesting in the console) like the `hostname` of the server and the `pid`.
+While Wryte uses a special formatter to create that JSON string, you can just use the `jsonify` flag when instantiating the logger instance. On top of spitting out JSON, it will also add some potentially interesting contexual information (which might be a tad less interesting in the console) like the `hostname` and the `pid`.
 
 ```python
 
@@ -103,16 +103,16 @@ wryter.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
 
 ### Using a different handler
 
-The previous example might not be that interesting because by default, Wyrte uses Pythong's `logging.StreamHandler` configuration to print to `stdout`.
+The previous example might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
 
-What might be more interesting, is to use a handler which sends the logs somewhere else. Let's take the logz.io Handler found at https://github.com/logzio/logzio-python-handler.
+What might be more interesting, is to use a handler which sends the logs somewhere else. Let's take the logz.io Handler found at https://github.com/logzio/logzio-python-handler for example.
 
-The following will log the message and its associated key values to console in a human readable format and log a machine readable JSON string with some additional contextual information to logz.io.
+The following will log the message and its associated key value pairs to the console in a human readable format and log a machine readable JSON string with some additional contextual information to logz.io.
 
 ```python
 from logzio.handler import LogzioHandler
 
-# Generate a debug level console logger named `wryte`.
+# Instantiate a debug level console logger named `wryte`.
 wryter = Wryte(name='wryte', level='debug')
 # `formatter` default is `json`. `level` default is `info`.
 wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), name='logzio', formatter='json', level='info')
@@ -125,13 +125,24 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 
 ...
 
+# This is sent to logz.io
+# {
+#     "hostname": "nir0s-x1",
+#     "level": "DEBUG",
+#     "message": "TEST_MESSAGE",
+#     "pid": 8554,
+#     "who": "where",
+#     "name": "wryte",
+#     "w00t": "what",
+#     "timestamp": "2017-12-22T14:19:09.828625"
+# }
 ```
 
 ### Instantiating a bare Wryte instance
 
 You can instantiate a logger without any handlers and add handlers yourself.
 
-Note that if you generate a base logger without any handlers, logging will succeed but you will not get any output.
+Note that if you instantiate a base logger without any handlers, logging will succeed but you will not get any output.
 Wryte doesn't protect you from doing that simply because you might want to add handlers only in specific situations.
 
 ```python
