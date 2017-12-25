@@ -75,6 +75,7 @@ class ConsoleFormatter(logging.Formatter):
 
     def format(self, record):
         record = record.msg.copy()
+
         name = record.get('name')
         timestamp = record.get('timestamp')
         level = record.get('level')
@@ -94,6 +95,7 @@ class ConsoleFormatter(logging.Formatter):
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
+
         msg = '{0} - {1} - {2} - {3}'.format(timestamp, name, level, message)
         if self.pretty:
             for key, value in record.items():
