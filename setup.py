@@ -25,6 +25,9 @@ setup(
     install_requires=[
         "click>=6.7"
     ],
+    extras_require={
+        'color': ['colorama'],
+    },
     classifiers=[
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',

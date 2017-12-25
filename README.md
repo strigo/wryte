@@ -53,6 +53,7 @@ Wryte supports Linux, Windows and OSX on Python 2.7 and 3.4+
 
 ```shell
 pip install wryte
+pip install wryte[color] # for colored console output.
 ```
 
 For dev:
@@ -88,16 +89,16 @@ While Wryte uses a special formatter to create that JSON string, you can just us
 ```python
 
 wryter = Wryte(name='wryte', pretty=True, level='debug', jsonify=True)
-wryter.debug('TEST_MESSAGE', {'w00t': 'what'}, 'who=where')
+wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
 {
-    "hostname": "nir0s-x1",
+    "timestamp": "2017-12-22T14:19:09.828625"
     "level": "DEBUG",
     "message": "TEST_MESSAGE",
     "pid": 8554,
-    "who": "where",
+    "hostname": "nir0s-x1",
     "name": "wryte",
-    "w00t": "what",
-    "timestamp": "2017-12-22T14:19:09.828625"
+    "ip": "127.0.0.1",
+    "port": "8121",
 }
 ```
 
@@ -117,7 +118,7 @@ wryter = Wryte(name='wryte', level='debug')
 # `formatter` default is `json`. `level` default is `info`.
 wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), name='logzio', formatter='json', level='info')
 
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
 2017-12-22T17:02:59.550920 - app - INFO - my message
   key1=value1,
   key2=value2,
@@ -127,14 +128,15 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 
 # This is sent to logz.io
 # {
+#     "timestamp": "2017-12-22T14:19:09.828625"
 #     "hostname": "nir0s-x1",
 #     "level": "DEBUG",
 #     "message": "TEST_MESSAGE",
 #     "pid": 8554,
-#     "who": "where",
 #     "name": "wryte",
-#     "w00t": "what",
-#     "timestamp": "2017-12-22T14:19:09.828625"
+#     "key1": "value1",
+#     "key2": "value2",
+#     "key3": "value3",
 # }
 ```
 
@@ -194,6 +196,30 @@ import logging
 
 wryter = Wryte(name='wryte', level='debug', bare=True)
 wryter.add_handler(handler=logging.StreamHandler(sys.stdout), formatter=myFormatter)
+
+```
+
+### Coloring
+
+The Console formatter supplied by Wryte outputs a colorful output by default using colorama, if colorama is installed.
+
+The severity levels will be colored differently accordingly to the following mapping:
+
+```python
+mapping = {
+    'debug': Fore.CYAN,
+    'info': Fore.GREEN,
+    'warning': Fore.YELLOW,
+    'warn': Fore.YELLOW,
+    'error': Fore.RED,
+    'critical': Style.BRIGHT + Fore.RED
+}
+```
+
+You can disable colored output by instantating your logger like so:
+
+```python
+wryter = Wryte(color=False)
 ```
 
 ## Testing

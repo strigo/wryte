@@ -25,6 +25,13 @@ import datetime
 
 import click
 
+try:
+    import colorama
+    from colorama import Fore, Style
+    COLORAMA = True
+except ImportError:
+    COLORAMA = False
+
 
 CLICK_CONTEXT_SETTINGS = dict(
     help_option_names=['-h', '--help'],
@@ -50,8 +57,21 @@ class JsonFormatter(logging.Formatter):
 
 
 class ConsoleFormatter(logging.Formatter):
-    def __init__(self, pretty=True):
+    def __init__(self, pretty=True, color=True):
         self.pretty = pretty
+        self.color = color
+
+    @staticmethod
+    def _get_level_color(level):
+        mapping = {
+            'debug': Fore.CYAN,
+            'info': Fore.GREEN,
+            'warning': Fore.YELLOW,
+            'warn': Fore.YELLOW,
+            'error': Fore.RED,
+            'critical': Style.BRIGHT + Fore.RED
+        }
+        return mapping.get(level.lower())
 
     def format(self, record):
         record = record.msg.copy()
@@ -70,6 +90,10 @@ class ConsoleFormatter(logging.Formatter):
         record.pop('hostname')
         record.pop('pid')
 
+        if COLORAMA and self.color:
+            level = str(self._get_level_color(level) + level + Style.RESET_ALL)
+            timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
+            name = str(Fore.MAGENTA + name + Style.RESET_ALL)
         msg = '{0} - {1} - {2} - {3}'.format(timestamp, name, level, message)
         if self.pretty:
             for key, value in record.items():
@@ -86,7 +110,8 @@ class Wryte(object):
                  level='info',
                  pretty=None,
                  bare=False,
-                 jsonify=False):
+                 jsonify=False,
+                 color=True):
         """Instantiate a logger instance.
 
         Either a JSON or a Console handler will be added to the logger
@@ -101,6 +126,7 @@ class Wryte(object):
         self.log_base = self._get_base(name, hostname)
         self.logger = self._logger(name)
 
+        self.color = color
         if not bare:
             if not jsonify:
                 self.add_default_console_handler(level)
@@ -128,7 +154,8 @@ class Wryte(object):
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
         elif formatter == 'console':
-            _formatter = ConsoleFormatter(self.pretty or True)
+            colorama.init(autoreset=True)
+            _formatter = ConsoleFormatter(self.pretty or True, self.color)
         else:
             _formatter = formatter
         handler.setFormatter(_formatter)
@@ -177,10 +204,10 @@ class Wryte(object):
         return logger
 
     @staticmethod
-    def _split_kv(obj):
+    def _split_kv(pair):
         """Return dict for key=value.
         """
-        kv = obj.split('=', 1)
+        kv = pair.split('=', 1)
         return {kv[0]: kv[1]}
 
     def _normalize_objects(self, objects):
@@ -292,6 +319,11 @@ class WryteError(Exception):
     '--name',
     type=click.STRING,
     default='Wryte')
-def main(level, message, objects, pretty, jsonify, name):
-    wryter = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify)
+@click.option(
+    '--no-color',
+    is_flag=True,
+    default=False)
+def main(level, message, objects, pretty, jsonify, name, no_color):
+    wryter = Wryte(name=name, pretty=pretty, level=level,
+                   jsonify=jsonify, color=not no_color)
     getattr(wryter, level.lower())(message, *objects)
