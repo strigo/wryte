@@ -316,7 +316,8 @@ class WryteError(Exception):
     default=True)
 @click.option(
     '-j',
-    '--jsonify',
+    '--json',
+    'jsonify',
     is_flag=True,
     default=False)
 @click.option(
