@@ -258,15 +258,26 @@ class Wryte(object):
             'pid': 51223
         }
         """
-        objects = self._normalize_objects(objects)
         log = self.log_base.copy()
+
+        objects = self._normalize_objects(objects)
         for part in objects:
             log.update(part)
+
         log.update(dict(
             message=message,
             level=level.upper(),
             timestamp=self._get_timestamp()))
         return log
+
+    def bind(self, *objects):
+        objects = self._normalize_objects(objects)
+        for part in objects:
+            self.log_base.update(part)
+
+    def unbind(self, *keys):
+        for key in keys:
+            self.log_base.pop(key)
 
     def event(self, message, *objects):
         objects = objects + ({'type': 'event'},)
@@ -337,5 +348,16 @@ def main(level, message, objects, pretty, jsonify, name, no_color):
 
 if __name__ == "__main__":
     wryter = Wryte(name='Wryte', level='debug')
+    wryter.info('Logging an error level message:')
     wryter.log('error', 'w00t')
+
+    wryter.info('Logging an event:')
     wryter.event('w00t')
+
+    wryter.info('Binding more dicts to the logger:')
+    wryter.bind({'bound1': 'value1'}, 'bound2=value2')
+    wryter.info('bind_test')
+
+    wryter.info('Unbinding keys:')
+    wryter.unbind('bound1')
+    wryter.critical('unbind_test')
