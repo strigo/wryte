@@ -270,8 +270,8 @@ class Wryte(object):
         return log
 
     def log(self, level, message, *objects):
-        obj = self._enrich(message, 'debug', objects)
-        self.logger.log(level, obj)
+        obj = self._enrich(message, level, objects)
+        self.logger.log(LEVEL_CONVERSION[level], obj)
 
     def debug(self, message, *objects):
         obj = self._enrich(message, 'debug', objects)
@@ -329,3 +329,8 @@ def main(level, message, objects, pretty, jsonify, name, no_color):
     wryter = Wryte(name=name, pretty=pretty, level=level,
                    jsonify=jsonify, color=not no_color)
     getattr(wryter, level.lower())(message, *objects)
+
+
+if __name__ == "__main__":
+    wryter = Wryte(name='Wryte', level='debug')
+    wryter.log('error', 'w00t')
