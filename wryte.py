@@ -154,7 +154,8 @@ class Wryte(object):
             _formatter = JsonFormatter(self.pretty or False)
         elif formatter == 'console':
             colorama.init(autoreset=True)
-            _formatter = ConsoleFormatter(self.pretty or True, self.color)
+            pretty = True if self.pretty in (None, True) else False
+            _formatter = ConsoleFormatter(pretty, self.color)
         else:
             _formatter = formatter
         handler.setFormatter(_formatter)
