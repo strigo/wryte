@@ -44,7 +44,8 @@ LEVEL_CONVERSION = {
     'warning': logging.WARNING,
     'warn': logging.WARN,
     'error': logging.ERROR,
-    'critical': logging.CRITICAL
+    'critical': logging.CRITICAL,
+    'event': logging.INFO
 }
 
 
@@ -69,7 +70,8 @@ class ConsoleFormatter(logging.Formatter):
             'warning': Fore.YELLOW,
             'warn': Fore.YELLOW,
             'error': Fore.RED,
-            'critical': Style.BRIGHT + Fore.RED
+            'critical': Style.BRIGHT + Fore.RED,
+            'event': Style.BRIGHT + Fore.GREEN,
         }
         return mapping.get(level.lower())
 
@@ -78,18 +80,13 @@ class ConsoleFormatter(logging.Formatter):
 
         name = record.get('name')
         timestamp = record.get('timestamp')
-        level = record.get('level')
+        level = record.get('level') if record['type'] == 'log' else 'EVENT'
         message = record.get('message')
 
         # We no longer need them as part of the dict.
-        record.pop('name')
-        record.pop('timestamp')
-        record.pop('level')
-        record.pop('message')
-
-        # These aren't printed out in the console logger.
-        record.pop('hostname')
-        record.pop('pid')
+        p = ['name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid']
+        for key in p:
+            record.pop(key)
 
         if COLORAMA and self.color:
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
@@ -196,7 +193,8 @@ class Wryte(object):
         return dict(
             name=name,
             hostname=hostname or socket.gethostname(),
-            pid=os.getpid())
+            pid=os.getpid(),
+            type='log')
 
     @staticmethod
     def _logger(name):
@@ -269,6 +267,11 @@ class Wryte(object):
             timestamp=self._get_timestamp()))
         return log
 
+    def event(self, message, *objects):
+        objects = objects + ({'type': 'event'},)
+        obj = self._enrich(message, 'info', objects)
+        self.logger.info(obj)
+
     def log(self, level, message, *objects):
         obj = self._enrich(message, level, objects)
         self.logger.log(LEVEL_CONVERSION[level], obj)
@@ -307,10 +310,9 @@ class WryteError(Exception):
 @click.argument('MESSAGE')
 @click.argument('OBJECTS', nargs=-1)
 @click.option(
-    '-p',
-    '--pretty',
+    '--pretty/--ugly',
     is_flag=True,
-    default=False)
+    default=True)
 @click.option(
     '-j',
     '--jsonify',
@@ -334,3 +336,4 @@ def main(level, message, objects, pretty, jsonify, name, no_color):
 if __name__ == "__main__":
     wryter = Wryte(name='Wryte', level='debug')
     wryter.log('error', 'w00t')
+    wryter.event('w00t')
