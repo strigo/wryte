@@ -168,6 +168,13 @@ class Wryte(object):
     def list_handlers(self):
         return [handler.name for handler in self.logger.handlers]
 
+    def set_level(self, level):
+        if level.lower() not in LEVEL_CONVERSION.keys():
+            raise WryteError('Level must be one of {0}'.format(
+                LEVEL_CONVERSION.keys()))
+
+        self.logger.setLevel(level.upper())
+
     def remove_handler(self, name):
         for handler in self.logger.handlers:
             if handler.name == name:

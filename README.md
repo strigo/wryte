@@ -102,6 +102,10 @@ wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
 }
 ```
 
+### Setting a level post-init?
+
+Easy: `wryter.set_level(LEVEL_NAME)`
+
 ### Using a different handler
 
 The previous example might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
