@@ -106,6 +106,19 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
   who=where
 ```
 
+#### Logger binding
+
+You can bind any amount of key=value pairs to a logger to add context to it:
+
+```python
+wryter = ...
+wryter.info('This will add the above key value pairs to any log message')
+wryter.bind({'user_id': framework.user, ...}, 'key=value')
+# ...do stuff
+
+wryter.unbind('user_id')
+```
+
 ### Logging JSON strings
 
 It will be often that you would simply want to log JSON strings (for instance, when you log to Elasticsearch or any other document store).
@@ -269,12 +282,13 @@ I would like to eventually provide a comfortable framework for many usecases, bu
 ```python
 cid = wryter.event('User logging in', {'user_id': 'nir0s'})
 # cid = {'cid': uuid.uuid4()}
-wryter.debug('Requesting log-in host...', cid, ...)
+wryter.bind(cid)
+wryter.debug('Requesting log-in host...', ...)
 ...
-wryter.debug('Querying db for available server...', cid, ...)
+wryter.debug('Querying db for available server...', ...)
 ...
 wryter.info('Host is: {0}'.format(host_ip))
-
+wryter.unbind('cid')
 ...
 ```
 
