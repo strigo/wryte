@@ -258,6 +258,28 @@ You can disable colored output by instantating your logger like so:
 wryter = Wryte(color=False)
 ```
 
+## Contextual logging
+
+In an ideal world, when a user performs an action in an app, a context related to that event will be logged and attached to any log message relating to that event, so that it is possible to tail the entire flow from the moment the user performed the action and until, say, they got a response from the db.
+
+This, unfortunately, is not provided in any log library I know of, and for a good reason - it depends on many factors potentially related to that specific app.
+
+I would like to eventually provide a comfortable framework for many usecases, but for now, you can do something like the following:
+
+```python
+cid = wryter.event('User logging in', {'user_id': 'nir0s'})
+# cid = {'cid': uuid.uuid4()}
+wryter.debug('Requesting log-in host...', cid, ...)
+...
+wryter.debug('Querying db for available server...', cid, ...)
+...
+wryter.info('Host is: {0}'.format(host_ip))
+
+...
+```
+
+The idea behind this is that a uuid is generated for each event and can then be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
+
 ## Testing
 
 ```shell
