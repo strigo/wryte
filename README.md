@@ -45,7 +45,33 @@ wryter.info('My Message')
 
 ## Alternatives
 
+Without getting into too much detail:
+
+* `structlog` is by far the best logger I've found up until now, but is not as simple as I'd like it to be when trying to provide the most standardized way of logging.
+* `pygogo` is nice but (like structlog) is too low-level for prodiving a standardized logging methodology.
+* `logbook` is extremely configurable, but again, not simple enough for standardization.
+
+## Goal
+
+Just to clarify, the aforementioned logging libraries are awesome, and can provide for anyone (certainly much better than `wryte` would for complex scenarios). While I would happily use any of them, they are build to let people "do whatever the hell they want". From my POV, they're missing three main attributes:
+
+* Easily configurable via ENV VARS for both formatting and shipping.
+* Provide sane defaults for formatting (JSON to aggregate, readable for console).
+* Simplify handler configuration - i.e. most Python loggers provide very robust formatting configuration, while relatively neglecting handler ease-of-use (even `logbook`, which provides configurable 3rd party handlers don't have sane defaults.)
+
+To sum up, what I would EVENTUALLY (it may take time) like to provide the user is with the following workflow (e.g.):
+
+```
+export WRYTE_logger_name_ENDPOINT_TYPE=elasticsearch
+export WRYTE_logger_name_ELASTICSEARCH_ENDPOINT=http://my-elastic-cluster:9200
+export WRYTE_logger_name_ELASTICSEARCH_SSL ...
 ...
+
+wryter.info('Message', {'x':'y'})
+```
+
+This, alone, should write a readable log to console and a JSON message to elasticsearch.
+
 
 ## Installation
 
@@ -65,7 +91,7 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 ## Usage
 
 
-### Adding key value pairs
+### Adding key=value pairs
 
 On top of logging simple messages, Wryte assumes that you have context you would like to log.
 Instead of making you work to consolidate your data, Wryte will allow you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
@@ -104,7 +130,11 @@ wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
 
 ### Setting a level post-init?
 
-Easy: `wryter.set_level(LEVEL_NAME)`
+Changing the logger's level is easy:
+
+```python
+wryter.set_level(LEVEL_NAME)
+```
 
 ### Using a different handler
 
@@ -175,7 +205,9 @@ You can list and remove handlers currently attached to a logger:
 import logging
 
 wryter = Wryte()
-handler_name = wryter.add_handler(handler=logging.FileHandler('file.log'), formatter='console')
+handler_name = wryter.add_handler(
+    handler=logging.FileHandler('file.log'),
+    formatter='console')
 
 wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
 # ...log some more
