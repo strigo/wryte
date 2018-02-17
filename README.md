@@ -141,42 +141,6 @@ wryter.bind({'user_id': framework.user, ...}, 'key=value')
 wryter.unbind('user_id')
 ```
 
-### Setting a level post-init?
-
-Changing the logger's level is easy:
-
-```python
-wryter.set_level(LEVEL_NAME)
-```
-
-### Dynamically changing log level on errors
-
-In a production environment, debug level logging is "frowned upon" (general statement :)).
-
-You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires that the logging level changes to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, `wryte` proposes that it should simpler.
-
-For example, let's say that your application reads a config file per `gunicorn` worker and you would like to activate debug logging if for some reason a worker can't read the file:
-
-```python
-config_file_read = False
-
-try:
-    config = read_config(PATH)
-except ReadError as ex:
-    # Can also pass `set_level` to `critical`, not just to `error`.
-    wryter.error('Failed to read config ({})'.format(ex), {'context': context}, set_level='debug')
-    # do_something to reread the file, but this time with debug logging enabled.
-    config_file_read = True
-finally:
-    if config_file_read:
-        wryter.set_level('info')
-    else:
-        raise SomeError(...)
-
-```
-
-Dumb example maybe, but you get the point :)
-
 ### Using a different handler
 
 The previous examples might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
@@ -214,6 +178,66 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
 #     "key3": "value3",
 # }
 ```
+
+### Using env vars to configure logging handlers
+
+One of Wryte's goals is to provide a simple way to configure loggers.
+
+A POC currently exists for using environment variables to enable certain handlers:
+
+```bash
+export WRYTE_FILE_PATH=PATH_TO_OUTPUT_FILE
+export WRYTE_LOGZIO_TOKEN=YOUR_LOGZIO_TOKEN
+```
+
+Will automatically append `json` formatted handlers to any logger you instantiate.
+Of course, this should be configurable on a logger level so, when this is done, it should provide something like:
+
+```
+export WRYTE_logger_name_FILE_PATH=...
+export WRYTE_logger_name_LOGZIO_TOKEN=...
+```
+
+Eventually, I intend to have wryte be fully configurable via env vars.
+
+See https://github.com/nir0s/wryte/issues/10 for more info.
+
+### Setting a level post-init?
+
+Changing the logger's level is easy:
+
+```python
+wryter.set_level(LEVEL_NAME)
+```
+
+### Dynamically changing log level on errors
+
+In a production environment, debug level logging is "frowned upon" (general statement :)).
+
+You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires that the logging level changes to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, `wryte` proposes that it should simpler.
+
+For example, let's say that your application reads a config file per `gunicorn` worker and you would like to activate debug logging if for some reason a worker can't read the file:
+
+```python
+config_file_read = False
+
+try:
+    config = read_config(PATH)
+except ReadError as ex:
+    # Can also pass `set_level` to `critical`, not just to `error`.
+    wryter.error('Failed to read config ({})'.format(ex), {'context': context}, set_level='debug')
+    # do_something to reread the file, but this time with debug logging enabled.
+    config_file_read = True
+finally:
+    if config_file_read:
+        wryter.set_level('info')
+    else:
+        raise SomeError(...)
+
+```
+
+Dumb example maybe, but you get the point :)
+
 
 ### Instantiating a bare Wryte instance
 

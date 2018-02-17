@@ -33,6 +33,13 @@ except ImportError:
     COLORAMA = False
 
 
+try:
+    from logzio.handler import LogzioHandler
+    LOGZIO_EXISTS = True
+except ImportError:
+    LOGZIO_EXISTS = False
+
+
 CLICK_CONTEXT_SETTINGS = dict(
     help_option_names=['-h', '--help'],
     token_normalize_func=lambda param: param.lower())
@@ -127,10 +134,34 @@ class Wryte(object):
 
         self.color = color
         if not bare:
-            if not jsonify:
-                self.add_default_console_handler(level)
+            self._configure_handlers(level, jsonify)
+
+    def _configure_handlers(self, level, jsonify):
+        if not jsonify:
+            self.add_default_console_handler(level)
+        else:
+            self.add_default_json_handler(level)
+
+        # WIP WIP WIP!
+        if os.getenv('WRYTE_LOGZIO_TOKEN'):
+            if LOGZIO_EXISTS:
+                self.add_handler(
+                    handler=LogzioHandler(os.getenv('WRYTE_LOGZIO_TOKEN')),
+                    name=self.name,
+                    formatter='json',
+                    level=level)
             else:
-                self.add_default_json_handler(level)
+                raise WryteError(
+                    'It seems that the logzio handler is not installed. '
+                    'You can install it by running `pip install '
+                    'wryte[logzio]`')
+
+        if os.getenv('WRYTE_FILE_PATH'):
+            self.add_handler(
+                handler=logging.FileHandler(os.getenv('WRYTE_FILE_PATH')),
+                name=self.name,
+                formatter='json',
+                level=level)
 
     def add_handler(self,
                     handler,
