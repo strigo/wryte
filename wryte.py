@@ -243,6 +243,8 @@ class Wryte(object):
 
     @staticmethod
     def _get_timestamp():
+        # TODO: Cosnider ussing return .strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        # instead for console only and isoformat for aggregation.
         return datetime.datetime.now().isoformat()
 
     def _enrich(self, message, level, objects):
