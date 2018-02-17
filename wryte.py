@@ -288,8 +288,8 @@ class Wryte(object):
         for key in keys:
             self.log_base.pop(key)
 
-    def event(self, message, *objects):
-        cid = str(uuid.uuid4())
+    def event(self, message, *objects, **kwargs):
+        cid = kwargs.get('cid', str(uuid.uuid4()))
         objects = objects + ({'type': 'event', 'cid': cid},)
         obj = self._enrich(message, 'info', objects)
         self.logger.info(obj)
