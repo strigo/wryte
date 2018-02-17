@@ -315,12 +315,16 @@ class Wryte(object):
         obj = self._enrich(message, 'warning', objects)
         self.logger.warning(obj)
 
-    def error(self, message, *objects):
+    def error(self, message, *objects, **kwargs):
         obj = self._enrich(message, 'error', objects)
+        if kwargs.get('set_level'):
+            self.set_level(kwargs.get('set_level'))
         self.logger.error(obj)
 
-    def critical(self, message, *objects):
+    def critical(self, message, *objects, **kwargs):
         obj = self._enrich(message, 'critical', objects)
+        if kwargs.get('set_level'):
+            self.set_level(kwargs.get('set_level'))
         self.logger.critical(obj)
 
 
@@ -358,7 +362,7 @@ def main(level, message, objects, pretty, jsonify, name, no_color):
 
 
 if __name__ == "__main__":
-    wryter = Wryte(name='Wryte', level='debug')
+    wryter = Wryte(name='Wryte', level='info')
     wryter.info('Logging an error level message:')
     wryter.log('error', 'w00t')
 
@@ -372,3 +376,5 @@ if __name__ == "__main__":
     wryter.info('Unbinding keys:')
     wryter.unbind('bound1')
     wryter.critical('unbind_test')
+
+    wryter.error('w00t', set_level='debug')

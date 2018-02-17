@@ -12,7 +12,7 @@ Wryte
 [![Is Wheel](https://img.shields.io/pypi/wheel/wryte.svg?style=flat)](https://pypi.python.org/pypi/wryte)
 
 
-NOTE: WIP!
+NOTE: WIP! Consider some of the features below as experimental.
 
 Wryte aims to provide a simple API for logging in Python for both human readable and JSON based messages.
 
@@ -91,34 +91,6 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 ## Usage
 
 
-### Adding key=value pairs
-
-On top of logging simple messages, Wryte assumes that you have context you would like to log.
-Instead of making you work to consolidate your data, Wryte will allow you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
-
-You can pass any number of single level or nested dictionaries and `key=value` strings and even JSON strings, and those will be parsed and added to the log message.
-
-```python
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
-2017-12-22T17:02:59.550920 - app - INFO - my message
-  key1=value1,
-  key2=value2,
-  who=where
-```
-
-#### Logger binding
-
-You can bind any amount of key=value pairs to a logger to add context to it:
-
-```python
-wryter = ...
-wryter.info('This will add the above key value pairs to any log message')
-wryter.bind({'user_id': framework.user, ...}, 'key=value')
-# ...do stuff
-
-wryter.unbind('user_id')
-```
-
 ### Logging JSON strings
 
 It will be often that you would simply want to log JSON strings (for instance, when you log to Elasticsearch or any other document store).
@@ -141,6 +113,34 @@ wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
 }
 ```
 
+### Adding key=value pairs
+
+On top of logging simple messages, Wryte assumes that you have context you would like to log.
+Instead of making you work to consolidate your data, Wryte will allow you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
+
+You can pass any number of single level or nested dictionaries and `key=value` strings and even JSON strings, and those will be parsed and added to the log message.
+
+```python
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+2017-12-22T17:02:59.550920 - app - INFO - my message
+  key1=value1,
+  key2=value2,
+  who=where
+```
+
+#### Binding contextual information to a logger
+
+You can bind any amount of key=value pairs to a logger to add context to it:
+
+```python
+wryter = ...
+wryter.info('This will add the above key value pairs to any log message')
+wryter.bind({'user_id': framework.user, ...}, 'key=value')
+# ...do stuff
+
+wryter.unbind('user_id')
+```
+
 ### Setting a level post-init?
 
 Changing the logger's level is easy:
@@ -149,9 +149,37 @@ Changing the logger's level is easy:
 wryter.set_level(LEVEL_NAME)
 ```
 
+### Dynamically changing log level on errors
+
+In a production environment, debug level logging is "frowned upon" (general statement :)).
+
+You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires that the logging level changes to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, `wryte` proposes that it should simpler.
+
+For example, let's say that your application reads a config file per `gunicorn` worker and you would like to activate debug logging if for some reason a worker can't read the file:
+
+```python
+config_file_read = False
+
+try:
+    config = read_config(PATH)
+except ReadError as ex:
+    # Can also pass `set_level` to `critical`, not just to `error`.
+    wryter.error('Failed to read config ({})'.format(ex), {'context': context}, set_level='debug')
+    # do_something to reread the file, but this time with debug logging enabled.
+    config_file_read = True
+finally:
+    if config_file_read:
+        wryter.set_level('info')
+    else:
+        raise SomeError(...)
+
+```
+
+Dumb example maybe, but you get the point :)
+
 ### Using a different handler
 
-The previous example might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
+The previous examples might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
 
 What might be more interesting, is to use a handler which sends the logs somewhere else. Let's take the logz.io Handler found at https://github.com/logzio/logzio-python-handler for example.
 
