@@ -252,6 +252,42 @@ Eventually, I intend to have wryte be fully configurable via env vars.
 
 See https://github.com/nir0s/wryte/issues/10 for more info.
 
+Example:
+
+```
+$ export WRYTE_FILE_PATH=log.file
+
+$ python wryte.py
+2018-02-18T08:56:27.921500 - Wryte - INFO - Logging an error level message:
+2018-02-18T08:56:27.921898 - Wryte - ERROR - w00t
+2018-02-18T08:56:27.922055 - Wryte - INFO - Logging an event:
+2018-02-18T08:56:27.922259 - Wryte - EVENT - w00t
+  cid=5e7bbc8e-5857-4934-9a21-d134a8086319
+2018-02-18T08:56:27.922421 - Wryte - INFO - Binding more dicts to the logger:
+2018-02-18T08:56:27.922623 - Wryte - INFO - bind_test
+  bound1=value1
+  bound2=value2
+2018-02-18T08:56:27.922783 - Wryte - INFO - Unbinding keys:
+  bound1=value1
+  bound2=value2
+2018-02-18T08:56:27.922935 - Wryte - CRITICAL - unbind_test
+  bound2=value2
+2018-02-18T08:56:27.923088 - Wryte - ERROR - w00t
+  bound2=value2
+
+$ cat log.file
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.921500", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an error level message:"}
+{"name": "Wryte", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.921898", "hostname": "my-host", "pid": 19220, "type": "log", "message": "w00t"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922055", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an event:"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922259", "hostname": "my-host", "pid": 19220, "message": "w00t", "type": "event", "cid": "5e7bbc8e-5857-4934-9a21-d134a8086319"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922421", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Binding more dicts to the logger:"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922623", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "bind_test", "type": "log", "bound2": "value2"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922783", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "Unbinding keys:", "type": "log", "bound2": "value2"}
+{"name": "Wryte", "bound2": "value2", "message": "unbind_test", "level": "CRITICAL", "timestamp": "2018-02-18T08:56:27.922935", "hostname": "my-host", "pid": 19220, "type": "log"}
+{"name": "Wryte", "bound2": "value2", "message": "w00t", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.923088", "hostname": "my-host", "pid": 19220, "type": "log"}
+
+```
+
 ### Setting a level post-init?
 
 Changing the logger's level is easy:
