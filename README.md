@@ -13,8 +13,10 @@ Wryte
 
 
 NOTE: WIP! Consider some of the features below as experimental.
+NOTE: Performance is literally on the bottom of my priorities right now. I haven't tested how performant wryte is, and will only do so when I feel I've covered basic functionality.
 
-Wryte aims to provide a simple API for logging in Python for both human readable and JSON based messages.
+
+Wryte aims to provide a simple API for logging in Python for both human readable and JSON messages.
 
 The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON strings containing the same information with some additional contextual information over the wire (to a log aggregation service e.g. ELK/Graylog2)
 
@@ -35,10 +37,10 @@ wryter.info('My Message')
 ## Design principles:
 
 * Very easy to get started.
+* Standardize for both human readable and machine readable strings for console output and server aggregation OOB with almost zero config.
 * Handler agnostic - you will be able to pass whichever handlers you desire.
 * While also providing default implementations for the most common handlers.
 * Auto-enrich with basic metadata (e.g. hostname, pid, etc..) so that the user doesn't have to.
-* Support both human readable and machine readable strings for console output and server aggregation OOB.
 * Single transportable module with (by default) no non-stdlib dependencies. (For now, for development purposes, Click is required to test via Wryte's CLI)
 * Make it easy to consolidate different parts of the log message.
 
@@ -51,15 +53,13 @@ Without getting into too much detail:
 * `pygogo` is nice but (like structlog) is too low-level for prodiving a standardized logging methodology.
 * `logbook` is extremely configurable, but again, not simple enough for standardization.
 
-## Goal
+Just to clarify, the aforementioned logging libraries are awesome, and can provide for anyone (certainly much better than `wryte` would for complex scenarios). While I would happily use any of them, they are built to let people "do whatever the hell they want". From my POV, they're missing three things:
 
-Just to clarify, the aforementioned logging libraries are awesome, and can provide for anyone (certainly much better than `wryte` would for complex scenarios). While I would happily use any of them, they are build to let people "do whatever the hell they want". From my POV, they're missing three main attributes:
+* Being easily configurable via ENV VARS for both formatting and shipping.
+* Sane defaults(!) for formatting (JSON to aggregate, readable for console), no bullshit.
+* Simplifying handler configuration - i.e. most Python loggers provide very robust formatting configuration, while relatively neglecting handler ease-of-use (even `logbook`, which provides configurable 3rd party handlers doesn't have sane defaults.)
 
-* Easily configurable via ENV VARS for both formatting and shipping.
-* Provide sane defaults for formatting (JSON to aggregate, readable for console).
-* Simplify handler configuration - i.e. most Python loggers provide very robust formatting configuration, while relatively neglecting handler ease-of-use (even `logbook`, which provides configurable 3rd party handlers don't have sane defaults.)
-
-To sum up, what I would EVENTUALLY (it may take time) like to provide the user is with the following workflow (e.g.):
+To sum up, what I would EVENTUALLY (it may take time) like to provide the user with is the following workflow (e.g.):
 
 ```
 export WRYTE_logger_name_ENDPOINT_TYPE=elasticsearch
@@ -70,7 +70,7 @@ export WRYTE_logger_name_ELASTICSEARCH_SSL ...
 wryter.info('Message', {'x':'y'})
 ```
 
-This, alone, should write a readable log to console and a JSON message to elasticsearch.
+This, alone, should write a human readable log to console and a JSON message to Elasticsearch.
 
 
 ## Installation
@@ -90,10 +90,9 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 
 ## Usage
 
-
 ### CLI
 
-Wryte provides a basic CLI to showoff output. You can utilize it by first installing the required dependencies:
+Wryte provides a basic CLI to show-off output. You can utilize it by first installing the required dependencies:
 
 ```
 $ pip install wryte[cli]
@@ -166,7 +165,7 @@ wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
 ### Adding key=value pairs
 
 On top of logging simple messages, Wryte assumes that you have context you would like to log.
-Instead of making you work to consolidate your data, Wryte will allow you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
+Instead of making you work to consolidate your data, Wryte allows you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
 
 You can pass any number of single level or nested dictionaries and `key=value` strings and even JSON strings, and those will be parsed and added to the log message.
 
@@ -248,7 +247,7 @@ export WRYTE_logger_name_FILE_PATH=...
 export WRYTE_logger_name_LOGZIO_TOKEN=...
 ```
 
-Eventually, I intend to have wryte be fully configurable via env vars.
+Eventually, I intend to have Wryte be fully configurable via env vars.
 
 See https://github.com/nir0s/wryte/issues/10 for more info.
 
@@ -298,9 +297,9 @@ wryter.set_level(LEVEL_NAME)
 
 ### Dynamically changing log level on errors
 
-In a production environment, debug level logging is "frowned upon" (general statement :)).
+In a production environment, debug level logging is "frowned upon" (in a very general sense, of course).
 
-You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires that the logging level changes to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, `wryte` proposes that it should simpler.
+You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires changing the level to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, Wryte proposes that it should simpler.
 
 For example, let's say that your application reads a config file per `gunicorn` worker and you would like to activate debug logging if for some reason a worker can't read the file:
 
@@ -372,9 +371,9 @@ By default the `_json` or `_console` handlers are added and they can also be rem
 
 ## Formatters
 
-Currently, Wryte allows to provide just two formatters: `json` and `console`. The `json` logger obviously doesn't require any formatting as any fields provided in the message will be propagated with the JSON string.
+Currently, Wryte allows to choose between just two formatters: `json` and `console`. The `json` logger obviously doesn't require any formatting as any fields provided in the message will be propagated with the JSON string.
 
-The console output, on the other hand, might require formatting. Wryte's priority is to simplify and standardize the way we print and ship log messages, not to allow you just view console logs anyway you want. I might add something in the future to allow to format console messages.
+The console output, on the other hand, might require formatting. Wryte's priority is to simplify and standardize the way we print and ship log messages, not to allow you to just view console logs anyway you want. I might add something in the future to allow to format console messages.
 
 To make sure you can still print out messages formatted the way you want, without utilizing `Wryte`, you can simply pass your formatter instance when adding a handler, e.g:
 
@@ -391,6 +390,10 @@ wryter.add_handler(handler=logging.StreamHandler(sys.stdout), formatter=myFormat
 The Console formatter supplied by Wryte outputs a colorful output by default using colorama, if colorama is installed.
 
 The severity levels will be colored differently accordingly to the following mapping:
+
+```bash
+$ pip install wryte[color]
+```
 
 ```python
 mapping = {
@@ -413,9 +416,7 @@ wryter = Wryte(color=False)
 
 In an ideal world, when a user performs an action in an app, a context related to that event will be logged and attached to any log message relating to that event, so that it is possible to tail the entire flow from the moment the user performed the action and until, say, they got a response from the db. Woo! What a long sentence!
 
-This, unfortunately, is not provided in any log library I know of, and for a good reason - it depends on many factors potentially related to that specific app.
-
-I would like to eventually provide a comfortable framework for many usecases, but for now, you can do something like the following:
+This, unfortunately, is not provided by any logging library that I know of, and for a good reason - it depends on many factors potentially related to that specific app.
 
 ```python
 # cid defaults to a uuid if it isn't provided.
@@ -430,7 +431,7 @@ wryter.unbind('cid')
 ...
 ```
 
-The idea behind this is that a uuid is generated for each event and can then be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
+The idea behind this is that a cid can be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
 
 ## Testing
 
