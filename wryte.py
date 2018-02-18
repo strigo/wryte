@@ -42,6 +42,12 @@ try:
 except ImportError:
     LOGZIO_INSTALLED = False
 
+try:
+    from cmreslogging.handlers import CMRESHandler
+    ELASTICSEARCH_INSTALLED = True
+except ImportError:
+    ELASTICSEARCH_INSTALLED = False
+
 
 LEVEL_CONVERSION = {
     'debug': logging.DEBUG,
@@ -157,6 +163,19 @@ class Wryte(object):
         if os.getenv('WRYTE_FILE_PATH'):
             self.add_handler(
                 handler=logging.FileHandler(os.getenv('WRYTE_FILE_PATH')),
+                name=self.name,
+                formatter='json',
+                level=level)
+
+        if os.getenv('WRYTE_ELASTICSEARCH_HOST'):
+            es_host = os.getenv('WRYTE_ELASTICSEARCH_HOST', 'localhost')
+            es_port = os.getenv('WRYTE_ELASTICSEARCH_PORT', 9200)
+            es_index = os.getenv('WRYTE_ELASTICSEARCH_INDEX', 'logs')
+            self.add_handler(
+                handler=CMRESHandler(
+                    hosts=[{'host': es_host, 'port': es_port}],
+                    auth_type=CMRESHandler.AuthType.NO_AUTH,
+                    es_index_name=es_index),
                 name=self.name,
                 formatter='json',
                 level=level)
