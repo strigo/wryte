@@ -23,26 +23,24 @@ import socket
 import logging
 import datetime
 
-import click
-
 try:
     import colorama
     from colorama import Fore, Style
-    COLORAMA = True
+    COLOR_ENABLED = True
 except ImportError:
-    COLORAMA = False
+    COLOR_ENABLED = False
 
+try:
+    import click
+    CLI_ENABLED = True
+except ImportError:
+    CLI_ENABLED = False
 
 try:
     from logzio.handler import LogzioHandler
-    LOGZIO_EXISTS = True
+    LOGZIO_INSTALLED = True
 except ImportError:
-    LOGZIO_EXISTS = False
-
-
-CLICK_CONTEXT_SETTINGS = dict(
-    help_option_names=['-h', '--help'],
-    token_normalize_func=lambda param: param.lower())
+    LOGZIO_INSTALLED = False
 
 
 LEVEL_CONVERSION = {
@@ -95,7 +93,7 @@ class ConsoleFormatter(logging.Formatter):
         for key in p:
             record.pop(key)
 
-        if COLORAMA and self.color:
+        if COLOR_ENABLED and self.color:
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
@@ -144,7 +142,7 @@ class Wryte(object):
 
         # WIP WIP WIP!
         if os.getenv('WRYTE_LOGZIO_TOKEN'):
-            if LOGZIO_EXISTS:
+            if LOGZIO_INSTALLED:
                 self.add_handler(
                     handler=LogzioHandler(os.getenv('WRYTE_LOGZIO_TOKEN')),
                     name=self.name,
@@ -184,7 +182,8 @@ class Wryte(object):
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
         elif formatter == 'console':
-            colorama.init(autoreset=True)
+            if COLOR_ENABLED:
+                colorama.init(autoreset=True)
             pretty = True if self.pretty in (None, True) else False
             _formatter = ConsoleFormatter(pretty, self.color)
         else:
@@ -363,34 +362,43 @@ class WryteError(Exception):
     pass
 
 
-@click.command(context_settings=CLICK_CONTEXT_SETTINGS)
-@click.argument('LEVEL')
-@click.argument('MESSAGE')
-@click.argument('OBJECTS', nargs=-1)
-@click.option(
-    '--pretty/--ugly',
-    is_flag=True,
-    default=True)
-@click.option(
-    '-j',
-    '--json',
-    'jsonify',
-    is_flag=True,
-    default=False)
-@click.option(
-    '-n',
-    '--name',
-    type=click.STRING,
-    default='Wryte')
-@click.option(
-    '--no-color',
-    is_flag=True,
-    default=False)
-def main(level, message, objects, pretty, jsonify, name, no_color):
-    wryter = Wryte(name=name, pretty=pretty, level=level,
-                   jsonify=jsonify, color=not no_color)
-    getattr(wryter, level.lower())(message, *objects)
+if CLI_ENABLED:
+    CLICK_CONTEXT_SETTINGS = dict(
+        help_option_names=['-h', '--help'],
+        token_normalize_func=lambda param: param.lower())
 
+    @click.command(context_settings=CLICK_CONTEXT_SETTINGS)
+    @click.argument('LEVEL')
+    @click.argument('MESSAGE')
+    @click.argument('OBJECTS', nargs=-1)
+    @click.option(
+        '--pretty/--ugly',
+        is_flag=True,
+        default=True)
+    @click.option(
+        '-j',
+        '--json',
+        'jsonify',
+        is_flag=True,
+        default=False)
+    @click.option(
+        '-n',
+        '--name',
+        type=click.STRING,
+        default='Wryte')
+    @click.option(
+        '--no-color',
+        is_flag=True,
+        default=False)
+    def main(level, message, objects, pretty, jsonify, name, no_color):
+        wryter = Wryte(name=name, pretty=pretty, level=level,
+                       jsonify=jsonify, color=not no_color)
+        getattr(wryter, level.lower())(message, *objects)
+else:
+    def main():
+        sys.exit(
+            "To use Wryte's CLI you must first install certain dependencies. "
+            "Please run `pip install wryte[cli]` to enable the CLI.")
 
 if __name__ == "__main__":
     wryter = Wryte(name='Wryte', level='info')

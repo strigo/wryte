@@ -22,11 +22,9 @@ setup(
     long_description=read('README.rst'),
     py_modules=['wryte'],
     entry_points={'console_scripts': ['wryte = wryte:main']},
-    install_requires=[
-        "click>=6.7"
-    ],
     extras_require={
         'color': ['colorama'],
+        'cli': ['click>=6.7']
     },
     classifiers=[
         'Programming Language :: Python',
