@@ -374,22 +374,26 @@ if CLI_ENABLED:
     @click.option(
         '--pretty/--ugly',
         is_flag=True,
-        default=True)
+        default=True,
+        help='Output JSON instead of key=value pairs for console logger')
     @click.option(
         '-j',
         '--json',
         'jsonify',
         is_flag=True,
-        default=False)
+        default=False,
+        help='Use the JSON logger formatter instead of the console one')
     @click.option(
         '-n',
         '--name',
         type=click.STRING,
-        default='Wryte')
+        default='Wryte',
+        help="Change the default logger's name")
     @click.option(
         '--no-color',
         is_flag=True,
-        default=False)
+        default=False,
+        help='Disable coloring in console formatter')
     def main(level, message, objects, pretty, jsonify, name, no_color):
         wryter = Wryte(name=name, pretty=pretty, level=level,
                        jsonify=jsonify, color=not no_color)

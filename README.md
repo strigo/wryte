@@ -91,6 +91,56 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 ## Usage
 
 
+### CLI
+
+Wryte provides a basic CLI to showoff output. You can utilize it by first installing the required dependencies:
+
+```
+$ pip install wryte[cli]
+$ wryte -h
+Usage: wryte [OPTIONS] LEVEL MESSAGE [OBJECTS]...
+
+Options:
+  --pretty / --ugly  Output JSON instead of key=value pairs for console logger
+  -j, --json         Use the JSON logger formatter instead of the console one
+  -n, --name TEXT    Change the default logger's name
+  --no-color         Disable coloring in console formatter
+  -h, --help         Show this message and exit.
+
+# Examples:
+
+$ wryte event my-event
+2018-02-18T08:52:23.526820 - Wryte - EVENT - my-event
+  cid=49b9260c-77b8-4ebb-bb15-d6ccce7c7ba4
+
+$ wryte info my-message key1=value1 key2=value2
+2018-02-18T08:52:50.691206 - Wryte - INFO - my-message
+  key1=value1
+  key2=value2
+
+$ wryte info my-message key1=value1 key2=value2 --ugly
+2018-02-18T08:53:45.126228 - Wryte - INFO - my-message
+{
+    "key2": "value2",
+    "key1": "value1"
+}
+
+$ wryte info my-message key1=value1 key2=value2 -j
+{
+    "key1": "value1",
+    "name": "Wryte",
+    "pid": 18613,
+    "type": "log",
+    "level": "INFO",
+    "timestamp": "2018-02-18T08:53:06.222926",
+    "message": "my-message",
+    "hostname": "nir0s-x1",
+    "key2": "value2"
+}
+
+```
+
+
 ### Logging JSON strings
 
 It will be often that you would simply want to log JSON strings (for instance, when you log to Elasticsearch or any other document store).
