@@ -88,6 +88,8 @@ class ConsoleFormatter(logging.Formatter):
         return mapping.get(level.lower())
 
     def format(self, record):
+        # TODO: The handling of the different fields here will heavily impact
+        # performance since every message goes through this flow. Solve this.
         record = record.msg.copy()
 
         name = record.get('name')
