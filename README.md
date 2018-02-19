@@ -139,6 +139,16 @@ $ wryte info my-message key1=value1 key2=value2 -j
 
 ```
 
+### Wryting a simple log to the console
+
+By default, Wryte will output `timestamp - level - logger_name - message` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either settings the `WRYTE_SIMPLE_CONSOLE` env var or by passing the `simple` flag when instantiating the logger:
+
+```python
+wryter = Wryte(simple=True)
+wryter.info('My Message')
+>>> 'My Message'
+```
+
 
 ### Logging JSON strings
 

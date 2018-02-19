@@ -69,9 +69,10 @@ class JsonFormatter(logging.Formatter):
 
 
 class ConsoleFormatter(logging.Formatter):
-    def __init__(self, pretty=True, color=True):
+    def __init__(self, pretty=True, color=True, simple=False):
         self.pretty = pretty
         self.color = color
+        self.simple = simple or os.getenv('WRYTE_SIMPLE_CONSOLE')
 
     @staticmethod
     def _get_level_color(level):
@@ -104,7 +105,11 @@ class ConsoleFormatter(logging.Formatter):
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
 
-        msg = '{0} - {1} - {2} - {3}'.format(timestamp, name, level, message)
+        if self.simple:
+            msg = message
+        else:
+            msg = '{0} - {1} - {2} - {3}'.format(
+                timestamp, name, level, message)
         if self.pretty:
             for key, value in record.items():
                 msg += '\n  {0}={1}'.format(key, value)
@@ -121,7 +126,8 @@ class Wryte(object):
                  pretty=None,
                  bare=False,
                  jsonify=False,
-                 color=True):
+                 color=True,
+                 simple=False):
         """Instantiate a logger instance.
 
         Either a JSON or a Console handler will be added to the logger
@@ -137,6 +143,7 @@ class Wryte(object):
         self.logger = self._logger(name)
 
         self.color = color
+        self.simple = simple
         if not bare:
             self._configure_handlers(level, jsonify)
 
@@ -204,7 +211,7 @@ class Wryte(object):
             if COLOR_ENABLED:
                 colorama.init(autoreset=True)
             pretty = True if self.pretty in (None, True) else False
-            _formatter = ConsoleFormatter(pretty, self.color)
+            _formatter = ConsoleFormatter(pretty, self.color, self.simple)
         else:
             _formatter = formatter
         handler.setFormatter(_formatter)
@@ -413,9 +420,19 @@ if CLI_ENABLED:
         is_flag=True,
         default=False,
         help='Disable coloring in console formatter')
-    def main(level, message, objects, pretty, jsonify, name, no_color):
-        wryter = Wryte(name=name, pretty=pretty, level=level,
-                       jsonify=jsonify, color=not no_color)
+    @click.option(
+        '--simple',
+        is_flag=True,
+        default=False,
+        help='Log only message to the console')
+    def main(level, message, objects, pretty, jsonify, name, no_color, simple):
+        wryter = Wryte(
+            name=name,
+            pretty=pretty,
+            level=level,
+            jsonify=jsonify,
+            color=not no_color,
+            simple=simple)
         getattr(wryter, level.lower())(message, *objects)
 else:
     def main():
