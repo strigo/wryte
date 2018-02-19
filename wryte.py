@@ -136,11 +136,11 @@ class Wryte(object):
 
         If `hostname` isn't provided, it will be retrieved via socket.
         """
-        self.name = name or __name__
+        logger_name = name or __name__
         self.pretty = pretty
 
-        self.log_base = self._get_base(name, hostname)
-        self.logger = self._logger(name)
+        self.log_base = self._get_base(logger_name, hostname)
+        self.logger = self._logger(logger_name)
 
         self.color = color
         self.simple = simple
@@ -158,7 +158,7 @@ class Wryte(object):
             if LOGZIO_INSTALLED:
                 self.add_handler(
                     handler=LogzioHandler(os.getenv('WRYTE_LOGZIO_TOKEN')),
-                    name=self.name,
+                    name='logzio-python',
                     formatter='json',
                     level=level)
             else:
@@ -170,7 +170,7 @@ class Wryte(object):
         if os.getenv('WRYTE_FILE_PATH'):
             self.add_handler(
                 handler=logging.FileHandler(os.getenv('WRYTE_FILE_PATH')),
-                name=self.name,
+                name='file',
                 formatter='json',
                 level=level)
 
@@ -183,7 +183,7 @@ class Wryte(object):
                     hosts=[{'host': es_host, 'port': es_port}],
                     auth_type=CMRESHandler.AuthType.NO_AUTH,
                     es_index_name=es_index),
-                name=self.name,
+                name='elasticsearch',
                 formatter='json',
                 level=level)
 
