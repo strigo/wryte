@@ -237,6 +237,10 @@ A POC currently exists for using environment variables to enable certain handler
 ```bash
 export WRYTE_FILE_PATH=PATH_TO_OUTPUT_FILE
 export WRYTE_LOGZIO_TOKEN=YOUR_LOGZIO_TOKEN
+
+export WRYTE_ELASTICSEARCH_HOST
+export WRYTE_ELASTICSEARCH_PORT (defaults to 9200)
+export WRYTE_ELASTICSEARCH_INDEX (defaults to `logs`)
 ```
 
 Will automatically append `json` formatted handlers to any logger you instantiate.
