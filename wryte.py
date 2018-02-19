@@ -353,10 +353,15 @@ class Wryte(object):
         self.logger.info(obj)
         return {'cid': cid}
 
-    def log(self, level, message, *objects):
+    def log(self, level, message, *objects, **kwargs):
         obj = self._enrich(message, level, objects)
+        if kwargs.get('set_level'):
+            self.set_level(kwargs.get('set_level'))
         self.logger.log(LEVEL_CONVERSION[level], obj)
 
+    # Ideally, we'd use `self.log` for all of these, but since
+    # level conversion would affect performance, it's better to now to
+    # until figuring something out.
     def debug(self, message, *objects):
         obj = self._enrich(message, 'debug', objects)
         self.logger.debug(obj)
