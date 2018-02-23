@@ -92,10 +92,10 @@ class ConsoleFormatter(logging.Formatter):
         # performance since every message goes through this flow. Solve this.
         record = record.msg.copy()
 
-        name = record.get('name')
-        timestamp = record.get('timestamp')
-        level = record.get('level') if record['type'] == 'log' else 'EVENT'
-        message = record.get('message')
+        name = record['name']
+        timestamp = record['timestamp']
+        level = record['level'] if record['type'] == 'log' else 'EVENT'
+        message = record['message']
 
         # We no longer need them as part of the dict.
         p = ('name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid')
