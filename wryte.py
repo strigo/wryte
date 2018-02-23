@@ -98,11 +98,11 @@ class ConsoleFormatter(logging.Formatter):
         message = record.get('message')
 
         # We no longer need them as part of the dict.
-        p = ['name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid']
+        p = ('name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid')
         for key in p:
             record.pop(key)
 
-        if COLOR_ENABLED and self.color:
+        if COLOR_ENABLED and self.color and not self.simple:
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
