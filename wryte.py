@@ -224,9 +224,14 @@ class Wryte(object):
         return name
 
     def list_handlers(self):
+        # TODO: Any reason this shouldn't be a tuple?
         return [handler.name for handler in self.logger.handlers]
 
     def set_level(self, level):
+        # TODO: Consider removing this check and letting the user
+        # take the hit incase they provide an unreasonable level.
+        # This would reduce overhead when using `set_level` in
+        # error messages under heavy load.
         if level.lower() not in LEVEL_CONVERSION.keys():
             raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
@@ -256,6 +261,7 @@ class Wryte(object):
     def _get_base(name, hostname):
         """Generate base fields for each log message.
         """
+        # TODO: Document that these are only generated once.
         return dict(
             name=name,
             hostname=hostname or socket.gethostname(),
@@ -273,6 +279,8 @@ class Wryte(object):
     def _split_kv(pair):
         """Return dict for key=value.
         """
+        # TODO: Document that this is costly.
+        # TODO: Document that it's only split once.
         kv = pair.split('=', 1)
         return {kv[0]: kv[1]}
 
