@@ -348,7 +348,7 @@ class Wryte(object):
         })
         return log
 
-    def bind(self, *objects):
+    def bind(self, *objects, **kwargs):
         objects = self._normalize_objects(objects)
         for part in objects:
             self.log.update(part)
@@ -360,12 +360,12 @@ class Wryte(object):
     def event(self, message, *objects, **kwargs):
         cid = kwargs.get('cid', str(uuid.uuid4()))
         objects = objects + ({'type': 'event', 'cid': cid},)
-        obj = self._enrich(message, 'info', objects)
+        obj = self._enrich(message, 'info', objects, kwargs)
         self.logger.info(obj)
         return {'cid': cid}
 
     def log(self, level, message, *objects, **kwargs):
-        obj = self._enrich(message, level, objects)
+        obj = self._enrich(message, level, objects, kwargs)
         if kwargs.get('set_level'):
             self.set_level(kwargs.get('set_level'))
         self.logger.log(LEVEL_CONVERSION[level], obj)
@@ -382,11 +382,11 @@ class Wryte(object):
         self.logger.info(obj)
 
     def warn(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'warning', objects)
+        obj = self._enrich(message, 'warning', objects, kwargs)
         self.logger.warning(obj)
 
     def warning(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'warning', objects)
+        obj = self._enrich(message, 'warning', objects, kwargs)
         self.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
