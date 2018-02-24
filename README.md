@@ -324,7 +324,7 @@ try:
     config = read_config(PATH)
 except ReadError as ex:
     # Can also pass `set_level` to `critical`, not just to `error`.
-    wryter.error('Failed to read config ({})'.format(ex), {'context': context}, set_level='debug')
+    wryter.error('Failed to read config ({})'.format(ex), {'context': context}, _set_level='debug')
     # do_something to reread the file, but this time with debug logging enabled.
     config_file_read = True
 finally:

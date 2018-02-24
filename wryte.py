@@ -390,16 +390,16 @@ class Wryte(object):
         self.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
-        if kwargs.get('set_level'):
-            self.set_level(kwargs.get('set_level'))
-            kwargs.pop('set_level')
+        if kwargs.get('_set_level'):
+            self.set_level(kwargs.get('_set_level'))
+            kwargs.pop('_set_level')
         obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
-        if kwargs.get('set_level'):
-            self.set_level(kwargs.get('set_level'))
-            kwargs.pop('set_level')
+        if kwargs.get('_set_level'):
+            self.set_level(kwargs.get('_set_level'))
+            kwargs.pop('_set_level')
         obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
 
