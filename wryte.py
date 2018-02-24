@@ -224,8 +224,7 @@ class Wryte(object):
         return name
 
     def list_handlers(self):
-        # TODO: Any reason this shouldn't be a tuple?
-        return [handler.name for handler in self.logger.handlers]
+        return (handler.name for handler in self.logger.handlers)
 
     def set_level(self, level):
         # TODO: Consider removing this check and letting the user
