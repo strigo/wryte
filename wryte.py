@@ -141,7 +141,7 @@ class Wryte(object):
         logger_name = name or __name__
         self.pretty = pretty
 
-        self.log_base = self._get_base(logger_name, hostname)
+        self.log = self._get_base(logger_name, hostname)
         self.logger = self._logger(logger_name)
 
         self.color = color
@@ -332,7 +332,7 @@ class Wryte(object):
             'pid': 51223
         }
         """
-        log = self.log_base.copy()
+        log = self.log.copy()
 
         objects = self._normalize_objects(objects)
         for part in objects:
@@ -351,11 +351,11 @@ class Wryte(object):
     def bind(self, *objects):
         objects = self._normalize_objects(objects)
         for part in objects:
-            self.log_base.update(part)
+            self.log.update(part)
 
     def unbind(self, *keys):
         for key in keys:
-            self.log_base.pop(key)
+            self.log.pop(key)
 
     def event(self, message, *objects, **kwargs):
         cid = kwargs.get('cid', str(uuid.uuid4()))
