@@ -303,7 +303,8 @@ class Wryte(object):
                 if '=' in obj:
                     normalized_objects.append(self._split_kv(obj))
                 else:
-                    normalized_objects.append({'_bad_object': obj})
+                    normalized_objects.append(
+                        {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
         return normalized_objects
 
     @staticmethod
