@@ -206,7 +206,6 @@ class Wryte(object):
         name = name or str(uuid.uuid4())
         # TODO: Allow to ignore fields in json formatter
         # TODO: Allow to remove field printing in console formatter
-        assert formatter in ('console', 'json')
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
         elif formatter == 'console':
