@@ -313,7 +313,7 @@ class Wryte(object):
         # instead for console only and isoformat for aggregation.
         return datetime.datetime.now().isoformat()
 
-    def _enrich(self, message, level, objects):
+    def _enrich(self, message, level, objects, kwargs=None):
         """Returns a metadata enriched object which includes the level,
         message and keys provided in all objects.
 
@@ -338,6 +338,9 @@ class Wryte(object):
         objects = self._normalize_objects(objects)
         for part in objects:
             log.update(part)
+
+        if kwargs:
+            log.update(kwargs)
 
         log.update(dict(
             message=message,
@@ -370,32 +373,34 @@ class Wryte(object):
     # Ideally, we'd use `self.log` for all of these, but since
     # level conversion would affect performance, it's better to now to
     # until figuring something out.
-    def debug(self, message, *objects):
-        obj = self._enrich(message, 'debug', objects)
+    def debug(self, message, *objects, **kwargs):
+        obj = self._enrich(message, 'debug', objects, kwargs)
         self.logger.debug(obj)
 
-    def info(self, message, *objects):
-        obj = self._enrich(message, 'info', objects)
+    def info(self, message, *objects, **kwargs):
+        obj = self._enrich(message, 'info', objects, kwargs)
         self.logger.info(obj)
 
-    def warn(self, message, *objects):
+    def warn(self, message, *objects, **kwargs):
         obj = self._enrich(message, 'warning', objects)
         self.logger.warning(obj)
 
-    def warning(self, message, *objects):
+    def warning(self, message, *objects, **kwargs):
         obj = self._enrich(message, 'warning', objects)
         self.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'error', objects)
         if kwargs.get('set_level'):
             self.set_level(kwargs.get('set_level'))
+            kwargs.pop('set_level')
+        obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'critical', objects)
         if kwargs.get('set_level'):
             self.set_level(kwargs.get('set_level'))
+            kwargs.pop('set_level')
+        obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
 
 
@@ -460,7 +465,7 @@ if __name__ == "__main__":
     wryter.info('Logging an error level message:')
     wryter.log('error', 'w00t')
 
-    wryter.info('Logging an event:')
+    wryter.info('Logging an event:', w00t='d')
     wryter.event('w00t')
 
     wryter.info('Binding more dicts to the logger:')
@@ -472,3 +477,6 @@ if __name__ == "__main__":
     wryter.critical('unbind_test')
 
     wryter.error('w00t', set_level='debug')
+
+    wryter.info('test-kwargs', key1='value')
+    wryter.error('message', set_level='debug', x='y', a='b')
