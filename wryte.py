@@ -260,11 +260,12 @@ class Wryte(object):
         """Generate base fields for each log message.
         """
         # TODO: Document that these are only generated once.
-        return dict(
-            name=name,
-            hostname=hostname or socket.gethostname(),
-            pid=os.getpid(),
-            type='log')
+        return {
+            'name': name,
+            'hostname': hostname or socket.gethostname(),
+            'pid': os.getpid(),
+            'type': 'log'
+        }
 
     @staticmethod
     def _logger(name):
@@ -340,10 +341,11 @@ class Wryte(object):
         if kwargs:
             log.update(kwargs)
 
-        log.update(dict(
-            message=message,
-            level=level.upper(),
-            timestamp=self._get_timestamp()))
+        log.update({
+            'message': message,
+            'level': level.upper(),
+            'timestamp': self._get_timestamp()
+        })
         return log
 
     def bind(self, *objects):

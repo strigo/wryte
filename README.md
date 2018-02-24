@@ -447,6 +447,13 @@ wryter.unbind('cid')
 
 The idea behind this is that a cid can be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
 
+
+## Performance optimizations
+
+* Using dict literal instead of constructor (https://stackoverflow.com/a/6612024/3332312)
+* Using tuples instead of lists (https://stackoverflow.com/a/68817/3332312)
+* Using dict subscription instead of get (https://stackoverflow.com/questions/7631929/python-dictionary-datastructure-which-method-d-or-d-get#comment58682247_7631951)
+
 ## Testing
 
 ```shell
