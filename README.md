@@ -161,7 +161,7 @@ An event is technically distinguished from a log by having a `{ 'type': 'event' 
 
 ### Wryting a simple log to the console
 
-By default, Wryte will output `timestamp - level - logger_name - message` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either settings the `WRYTE_SIMPLE_CONSOLE` env var or by passing the `simple` flag when instantiating the logger:
+By default, Wryte will output `timestamp - level - logger_name - message` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either setting the `WRYTE_SIMPLE_CONSOLE` env var or by passing the `simple` flag when instantiating the logger:
 
 ```python
 wryter = Wryte(simple=True)
