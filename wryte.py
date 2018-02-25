@@ -139,17 +139,118 @@ class Wryte(object):
         If `hostname` isn't provided, it will be retrieved via socket.
         """
         logger_name = name or __name__
+
         self.pretty = pretty
+        self.color = color
+        self.simple = simple
 
         self._log = self._get_base(logger_name, hostname)
         self.logger = self._logger(logger_name)
 
-        self.color = color
-        self.simple = simple
         if not bare:
             self._configure_handlers(level, jsonify)
 
-    def _configure_handlers(self, level, jsonify):
+    @staticmethod
+    def _logger(name):
+        """Return a named logger instance.
+        """
+        logger = logging.getLogger(name)
+        return logger
+
+    @staticmethod
+    def _get_base(name, hostname):
+        """Generate base fields for each log message.
+        """
+        # TODO: Document that these are only generated once.
+        return {
+            'name': name,
+            'hostname': hostname or socket.gethostname(),
+            'pid': os.getpid(),
+            'type': 'log'
+        }
+
+    @staticmethod
+    def _split_kv(pair):
+        """Return dict for key=value.
+        """
+        # TODO: Document that this is costly.
+        # TODO: Document that it's only split once.
+        kv = pair.split('=', 1)
+        return {kv[0]: kv[1]}
+
+    @staticmethod
+    def _get_timestamp():
+        # TODO: Cosnider ussing return .strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        # instead for console only and isoformat for aggregation.
+        return datetime.datetime.now().isoformat()
+
+    def _normalize_objects(self, objects):
+        """Return a normalized dictionary for a list of key value like objects.
+
+        This supports parsing dicts, json strings and key=value pairs.
+
+        e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
+        return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
+        """
+        normalized_objects = []
+        for obj in objects:
+            try:
+                if isinstance(obj, dict):
+                    normalized_objects.append(obj)
+                else:
+                    normalized_objects.append(json.loads(obj))
+            # TODO: Should be a JsonDecoderError
+            except Exception:  # NOQA
+                if '=' in obj:
+                    normalized_objects.append(self._split_kv(obj))
+                else:
+                    normalized_objects.append(
+                        {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
+        return normalized_objects
+
+    def _enrich(self, message, level, objects, kwargs=None):
+        """Returns a metadata enriched object which includes the level,
+        message and keys provided in all objects.
+
+        Example:
+
+        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'],
+
+        Return:
+        {
+            'timestamp': '2017-12-22T17:02:59.550920',
+            'level': 'INFO',
+            'message': 'MESSAGE',
+            'key1': 'value1',
+            'key2': 'value2',
+            'name': 'my-logger-name',
+            'hostname': 'my-host',
+            'pid': 51223
+        }
+        """
+        log = self._log.copy()
+
+        # Normalizes and adds dictionary-like context.
+        objects = self._normalize_objects(objects)
+        for part in objects:
+            log.update(part)
+
+        # Adds k=v like context
+        if kwargs:
+            log.update(kwargs)
+
+        # Appends default fields.
+        # This of course means that if any of these are provided
+        # within the chain, they will be overriden here.
+        log.update({
+            'message': message,
+            'level': level.upper(),
+            'timestamp': self._get_timestamp()
+        })
+
+        return log
+
+    def _configure_handlers(self, level, jsonify=False):
         if not jsonify:
             self.add_default_console_handler(level)
         else:
@@ -204,6 +305,7 @@ class Wryte(object):
                 LEVEL_CONVERSION.keys()))
 
         name = name or str(uuid.uuid4())
+
         # TODO: Allow to ignore fields in json formatter
         # TODO: Allow to remove field printing in console formatter
         if formatter == 'json':
@@ -220,21 +322,11 @@ class Wryte(object):
 
         self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
         self.logger.addHandler(handler)
+
         return name
 
     def list_handlers(self):
         return (handler.name for handler in self.logger.handlers)
-
-    def set_level(self, level):
-        # TODO: Consider removing this check and letting the user
-        # take the hit incase they provide an unreasonable level.
-        # This would reduce overhead when using `set_level` in
-        # error messages under heavy load.
-        if level.lower() not in LEVEL_CONVERSION.keys():
-            raise WryteError('Level must be one of {0}'.format(
-                LEVEL_CONVERSION.keys()))
-
-        self.logger.setLevel(level.upper())
 
     def remove_handler(self, name):
         for handler in self.logger.handlers:
@@ -255,106 +347,27 @@ class Wryte(object):
             formatter='console',
             level=level)
 
-    @staticmethod
-    def _get_base(name, hostname):
-        """Generate base fields for each log message.
-        """
-        # TODO: Document that these are only generated once.
-        return {
-            'name': name,
-            'hostname': hostname or socket.gethostname(),
-            'pid': os.getpid(),
-            'type': 'log'
-        }
+    def set_level(self, level):
+        # TODO: Consider removing this check and letting the user
+        # take the hit incase they provide an unreasonable level.
+        # This would reduce overhead when using `set_level` in
+        # error messages under heavy load.
+        if level.lower() not in LEVEL_CONVERSION.keys():
+            raise WryteError('Level must be one of {0}'.format(
+                LEVEL_CONVERSION.keys()))
 
-    @staticmethod
-    def _logger(name):
-        """Return a named logger instance.
-        """
-        logger = logging.getLogger(name)
-        return logger
-
-    @staticmethod
-    def _split_kv(pair):
-        """Return dict for key=value.
-        """
-        # TODO: Document that this is costly.
-        # TODO: Document that it's only split once.
-        kv = pair.split('=', 1)
-        return {kv[0]: kv[1]}
-
-    def _normalize_objects(self, objects):
-        """Return a normalized dictionary for a list of key value like objects.
-
-        This supports parsing dicts, json strings and key=value pairs.
-
-        e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
-        return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
-        """
-        normalized_objects = []
-        for obj in objects:
-            try:
-                if isinstance(obj, dict):
-                    normalized_objects.append(obj)
-                else:
-                    normalized_objects.append(json.loads(obj))
-            # TODO: Should be a JsonDecoderError
-            except Exception:  # NOQA
-                if '=' in obj:
-                    normalized_objects.append(self._split_kv(obj))
-                else:
-                    normalized_objects.append(
-                        {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
-        return normalized_objects
-
-    @staticmethod
-    def _get_timestamp():
-        # TODO: Cosnider ussing return .strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        # instead for console only and isoformat for aggregation.
-        return datetime.datetime.now().isoformat()
-
-    def _enrich(self, message, level, objects, kwargs=None):
-        """Returns a metadata enriched object which includes the level,
-        message and keys provided in all objects.
-
-        Example:
-
-        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'],
-
-        Return:
-        {
-            'timestamp': '2017-12-22T17:02:59.550920',
-            'level': 'INFO',
-            'message': 'MESSAGE',
-            'key1': 'value1',
-            'key2': 'value2',
-            'name': 'my-logger-name',
-            'hostname': 'my-host',
-            'pid': 51223
-        }
-        """
-        log = self._log.copy()
-
-        objects = self._normalize_objects(objects)
-        for part in objects:
-            log.update(part)
-
-        if kwargs:
-            log.update(kwargs)
-
-        log.update({
-            'message': message,
-            'level': level.upper(),
-            'timestamp': self._get_timestamp()
-        })
-        return log
+        self.logger.setLevel(level.upper())
 
     def bind(self, *objects, **kwargs):
         objects = self._normalize_objects(objects)
         for part in objects:
             self._log.update(part)
 
+        if kwargs:
+            self._log.update(kwargs)
+
     def unbind(self, *keys):
+        # TODO: Support unbinding nested field in context
         for key in keys:
             self._log.pop(key)
 
