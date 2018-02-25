@@ -11,16 +11,28 @@ Wryte
 [![Code Quality](https://landscape.io/github/nir0s/wryte/master/landscape.svg?style=flat)](https://landscape.io/github/nir0s/wryte)
 [![Is Wheel](https://img.shields.io/pypi/wheel/wryte.svg?style=flat)](https://pypi.python.org/pypi/wryte)
 
-
-NOTE: WIP! Consider some of the features below as experimental.
-NOTE: Performance is literally on the bottom of my priorities right now. I haven't tested how performant wryte is, and will only do so when I feel I've covered basic functionality.
-
-
-Wryte aims to provide a simple API for logging in Python for both human readable and JSON messages.
-
-The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON strings containing the same information with some additional contextual information over the wire (to a log aggregation service e.g. ELK/Graylog2)
-
 Note that the following documentation relates to the code currently in the master branch. If you want to view docs for previous versions, please choose the relevant release in the "releases" tab.
+
+## Features
+
+Wryte aims to provide a simple API for logging in Python providing (at the very least) a comfortable infrastructure for solving the following:
+
+* Very easy to get started
+* Sane defaults!
+* Easily configurable via env vars (for the purpose of easy config via schedulers e.g. systemd, nomad, k8s)
+* Standardize formatting for both Console (human readable) and aggregation (JSON)
+* Handler agnosticism
+* Differentiating user events and system logs
+* Auto-enrich with useful data (hostname, pid, etc..)
+* Easily providing contexual data
+* Dynamic severity levels
+* Context binding to prevent repetition
+* Retroactive logging (WIP)
+* Assisnt in user tracing (via auto-provided context ids)
+
+The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON containing the same information with some additional contextual information over the wire (to a log aggregation backend e.g. ELK/Graylog2)
+
+NOTE: I haven't tested how performant Wryte is. Once all functionality is in-place, I will benchmark and post the results.
 
 Anyway, getting started is as easy as:
 
@@ -33,44 +45,6 @@ wryter.info('My Message')
 ...
 
 ```
-
-## Design principles:
-
-* Very easy to get started.
-* Standardize for both human readable and machine readable strings for console output and server aggregation OOB with almost zero config.
-* Handler agnostic - you will be able to pass whichever handlers you desire.
-* While also providing default implementations for the most common handlers.
-* Auto-enrich with basic metadata (e.g. hostname, pid, etc..) so that the user doesn't have to.
-* Single transportable module with (by default) no non-stdlib dependencies. (For now, for development purposes, Click is required to test via Wryte's CLI)
-* Make it easy to consolidate different parts of the log message.
-
-
-## Alternatives
-
-Without getting into too much detail:
-
-* `structlog` is by far the best logger I've found up until now, but is not as simple as I'd like it to be when trying to provide the most standardized way of logging.
-* `pygogo` is nice but (like structlog) is too low-level for prodiving a standardized logging methodology.
-* `logbook` is extremely configurable, but again, not simple enough for standardization.
-
-Just to clarify, the aforementioned logging libraries are awesome, and can provide for anyone (certainly much better than `wryte` would for complex scenarios). While I would happily use any of them, they are built to let people "do whatever the hell they want". From my POV, they're missing three things:
-
-* Being easily configurable via ENV VARS for both formatting and shipping.
-* Sane defaults(!) for formatting (JSON to aggregate, readable for console), no bullshit.
-* Simplifying handler configuration - i.e. most Python loggers provide very robust formatting configuration, while relatively neglecting handler ease-of-use (even `logbook`, which provides configurable 3rd party handlers doesn't have sane defaults.)
-
-To sum up, what I would EVENTUALLY (it may take time) like to provide the user with is the following workflow (e.g.):
-
-```
-export WRYTE_logger_name_ENDPOINT_TYPE=elasticsearch
-export WRYTE_logger_name_ELASTICSEARCH_ENDPOINT=http://my-elastic-cluster:9200
-export WRYTE_logger_name_ELASTICSEARCH_SSL ...
-...
-
-wryter.info('Message', {'x':'y'})
-```
-
-This, alone, should write a human readable log to console and a JSON message to Elasticsearch.
 
 
 ## Installation
@@ -104,6 +78,7 @@ Options:
   -j, --json         Use the JSON logger formatter instead of the console one
   -n, --name TEXT    Change the default logger's name
   --no-color         Disable coloring in console formatter
+  --simple           Log only message to the console
   -h, --help         Show this message and exit.
 
 # Examples:
@@ -139,6 +114,51 @@ $ wryte info my-message key1=value1 key2=value2 -j
 
 ```
 
+### Instantiating the logger
+
+```python
+from wryte import Wryte
+
+wryter = Wryte(
+  name=None,  # The name of the logger (appended to each log message)
+  hostname=None,  # The hostname
+  level='info',  # severity level
+  pretty=None,  # (Console only) Whether to pretty-print JSON
+  bare=False,  # Omit any default handlers. You will have to add them yourself after.
+  jsonify=False,  # (Console only) Output json to the console instead of a human readable message.
+  color=True,  # (Console only) Colorize Console output.
+  simple=False  # (Console only) Only print the message and key=value pairs.
+)
+```
+
+### Available logging levels
+
+Wryte allows to use the following logging levels:
+
+* `event` (see below)
+* `debug`
+* `info`
+* `warning`
+* `warn`
+* `error`
+* `critical`
+
+### Distinguishing between Events and Logs
+
+Events are logs generated by user interactions, while logs are contextual to them. e.g.:
+
+```python
+wryter.event('Logging user in', user_id=user.id)
+wryter.info('Retrieving user info...' user_id=user.id)
+wryter.debug('Requesting session...', ...)
+# more debug stuff..
+wryter.info('User Logged in!', user_id=user.id)
+```
+
+Wryte explicitly provides an `event` method so that you're able to distinguish "things that happened in my application" from "things that happened in my system".
+
+An event is technically distinguished from a log by having a `{ 'type': 'event' }` field and different coloring in the console as well as returning a `cid` for flow tracing (more on that later).
+
 ### Wryting a simple log to the console
 
 By default, Wryte will output `timestamp - level - logger_name - message` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either settings the `WRYTE_SIMPLE_CONSOLE` env var or by passing the `simple` flag when instantiating the logger:
@@ -149,64 +169,11 @@ wryter.info('My Message')
 >>> 'My Message'
 ```
 
+### Logging to both the console (syslog, stdout, etc..) and an aggregation backend
 
-### Logging JSON strings
+The most interesting use-case is when you want to provide easy server-side debugging using human readable messages while also sending events and logs to an aggregation backend such as Elasticsearch, Graylog2 and the likes.
 
-It will be often that you would simply want to log JSON strings (for instance, when you log to Elasticsearch or any other document store).
-
-While Wryte uses a special formatter to create that JSON string, you can just use the `jsonify` flag when instantiating the logger instance. On top of spitting out JSON, it will also add some potentially interesting contexual information (which might be a tad less interesting in the console) like the `hostname` and the `pid`.
-
-```python
-
-wryter = Wryte(name='wryte', pretty=True, level='debug', jsonify=True)
-wryter.debug('TEST_MESSAGE', {'port': '8121'}, 'ip=127.0.0.1')
-{
-    "timestamp": "2017-12-22T14:19:09.828625"
-    "level": "DEBUG",
-    "message": "TEST_MESSAGE",
-    "pid": 8554,
-    "hostname": "nir0s-x1",
-    "name": "wryte",
-    "ip": "127.0.0.1",
-    "port": "8121",
-}
-```
-
-### Adding key=value pairs
-
-On top of logging simple messages, Wryte assumes that you have context you would like to log.
-Instead of making you work to consolidate your data, Wryte allows you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
-
-You can pass any number of single level or nested dictionaries and `key=value` strings and even JSON strings, and those will be parsed and added to the log message.
-
-```python
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
-2017-12-22T17:02:59.550920 - app - INFO - my message
-  key1=value1,
-  key2=value2,
-  who=where
-```
-
-#### Binding contextual information to a logger
-
-You can bind any amount of key=value pairs to a logger to add context to it:
-
-```python
-wryter = ...
-wryter.info('This will add the above key value pairs to any log message')
-wryter.bind({'user_id': framework.user, ...}, 'key=value')
-# ...do stuff
-
-wryter.unbind('user_id')
-```
-
-### Using a different handler
-
-The previous examples might not be that interesting because by default, Wryte uses Python's `logging.StreamHandler` configuration to print to `stdout`.
-
-What might be more interesting, is to use a handler which sends the logs somewhere else. Let's take the logz.io Handler found at https://github.com/logzio/logzio-python-handler for example.
-
-The following will log the message and its associated key value pairs to the console in a human readable format and log a machine readable JSON string with some additional contextual information to logz.io.
+For example:
 
 ```python
 from logzio.handler import LogzioHandler
@@ -238,82 +205,78 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
 # }
 ```
 
-### Using env vars to configure logging handlers
+The above will log the message and its associated key value pairs to the console in a human readable format and log a machine readable JSON string with some additional contextual information to logz.io.
 
-One of Wryte's goals is to provide a simple way to configure loggers.
 
-A POC currently exists for using environment variables to enable certain handlers:
+### Contexual logging
 
-```bash
-export WRYTE_FILE_PATH=PATH_TO_OUTPUT_FILE
-export WRYTE_LOGZIO_TOKEN=YOUR_LOGZIO_TOKEN
+On top of logging simple messages, Wryte assumes that you have context you would like to add to your logs.
+Instead of making you work to consolidate your data, Wryte allows you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
 
-export WRYTE_ELASTICSEARCH_HOST
-export WRYTE_ELASTICSEARCH_PORT (defaults to 9200)
-export WRYTE_ELASTICSEARCH_INDEX (defaults to `logs`)
-```
+You can pass any number of single level or nested dictionaries and `key=value` strings or kwargs and even JSON strings, and those will be parsed and added to the log message.
 
-Will automatically append `json` formatted handlers to any logger you instantiate.
-Of course, this should be configurable on a logger level so, when this is done, it should provide something like:
+For example:
 
-```
-export WRYTE_logger_name_FILE_PATH=...
-export WRYTE_logger_name_LOGZIO_TOKEN=...
-```
+```python
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+2017-12-22T17:02:59.550920 - app - INFO - my message
+  key1=value1,
+  key2=value2,
+  who=where
 
-Eventually, I intend to have Wryte be fully configurable via env vars.
-
-See https://github.com/nir0s/wryte/issues/10 for more info.
-
-Example:
-
-```
-$ export WRYTE_FILE_PATH=log.file
-
-$ python wryte.py
-2018-02-18T08:56:27.921500 - Wryte - INFO - Logging an error level message:
-2018-02-18T08:56:27.921898 - Wryte - ERROR - w00t
-2018-02-18T08:56:27.922055 - Wryte - INFO - Logging an event:
-2018-02-18T08:56:27.922259 - Wryte - EVENT - w00t
-  cid=5e7bbc8e-5857-4934-9a21-d134a8086319
-2018-02-18T08:56:27.922421 - Wryte - INFO - Binding more dicts to the logger:
-2018-02-18T08:56:27.922623 - Wryte - INFO - bind_test
-  bound1=value1
-  bound2=value2
-2018-02-18T08:56:27.922783 - Wryte - INFO - Unbinding keys:
-  bound1=value1
-  bound2=value2
-2018-02-18T08:56:27.922935 - Wryte - CRITICAL - unbind_test
-  bound2=value2
-2018-02-18T08:56:27.923088 - Wryte - ERROR - w00t
-  bound2=value2
-
-$ cat log.file
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.921500", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an error level message:"}
-{"name": "Wryte", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.921898", "hostname": "my-host", "pid": 19220, "type": "log", "message": "w00t"}
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922055", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an event:"}
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922259", "hostname": "my-host", "pid": 19220, "message": "w00t", "type": "event", "cid": "5e7bbc8e-5857-4934-9a21-d134a8086319"}
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922421", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Binding more dicts to the logger:"}
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922623", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "bind_test", "type": "log", "bound2": "value2"}
-{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922783", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "Unbinding keys:", "type": "log", "bound2": "value2"}
-{"name": "Wryte", "bound2": "value2", "message": "unbind_test", "level": "CRITICAL", "timestamp": "2018-02-18T08:56:27.922935", "hostname": "my-host", "pid": 19220, "type": "log"}
-{"name": "Wryte", "bound2": "value2", "message": "w00t", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.923088", "hostname": "my-host", "pid": 19220, "type": "log"}
+wryter.error('My Message', key='value')  # kwargs
+wryter.debug('My Message', '{"key": "value"}')  # JSON strings
+wryter.info('key=value')  # kv strings
+wryter.critical({'key': 'value', 'nested': { 'key1': 'value1', 'key2': 'value2'}})  # nested dicts
 
 ```
 
-### Setting a level post-init?
+#### Reserved Fields
 
-Changing the logger's level is easy:
+The following are fields reserved to Wryte:
+
+* Any `_field`
+* `hostname`
+* `pid`
+* `message`
+* `timestamp`
+* `level`
+* `type`
+* `name`
+
+Note that event if provided, these are bound to be overriden.
+
+
+#### Binding contextual information to a logger
+
+To prevent contextual repitition, Wryte allows you to bind any amount of key=value pairs to a logger to add context to it.
+
+Until unbound, the logger will include the bound fields in each message.
+
+```python
+wryter = ...
+wryter.info('This will add the above key value pairs to any log message')
+wryter.bind({'user_id': framework.user, ...}, 'key=value')
+# ...do stuff
+
+wryter.unbind('user_id')
+```
+
+### Changing a logger's level
+
+To better control output
+
+You can change a logger's level like so:
 
 ```python
 wryter.set_level(LEVEL_NAME)
 ```
 
-### Dynamically changing log level on errors
+#### Dynamically changing log level on errors
 
-In a production environment, debug level logging is "frowned upon" (in a very general sense, of course).
+Debug logs are only interesting when we need to debug something. Logging can potentially block the application (if not using asnyc handlers), utilize the network, or increase disk IOPS. Ideally, we would only log debug logs when some problem arises, and once that is resolved, the logger will assume info level logging.
 
-You can change the log level of a logger anytime (see above). In case of errors, though, you might want to signal that a certain error requires changing the level to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, Wryte proposes that it should simpler.
+You can signal that a certain error requires changing the level to "debug" from now on. You could use the `set_level` method everytime you have such an error but instead, Wryte proposes that it should simpler.
 
 For example, let's say that your application reads a config file per `gunicorn` worker and you would like to activate debug logging if for some reason a worker can't read the file:
 
@@ -336,6 +299,30 @@ finally:
 ```
 
 Dumb example maybe, but you get the point :)
+
+The `_set_level` flag is supported in `error` and `critical`.
+
+
+### Retroactive Logging
+
+`raise NotImplementedError('WIP!')` :)
+
+Much like dynamic level logging, retroactive logging can help reduce strain on the application/server by only logging to disk/network when there's a certain problem.
+
+Retroactive logging is the practice of logging all transaction-specific logs to memory and flushing them if everything is ok. If something goes wrong, instead of getting rid of the logs, we can write them to disk or to the network so that they're persisted and we can debug the problem. A culprit of this is that if the application stops working, it won't write the logs.
+
+Wryte aims to provide a retroactive logging implementation somewhere along the lines of:
+
+```python
+wryter.event('...', _retro=True)
+# from here on, until the end of a transaction, all debug logs will be logged to the MemoryHandler
+wryter.debug('...')
+...
+
+# End of transaction. If err, write, else, flush to Null.
+wryter.flush(err)
+
+```
 
 
 ### Instantiating a bare Wryte instance
@@ -361,8 +348,6 @@ with open('file.log') as log_file:
 
 ### Listing and removing handlers
 
-Sometimes, you want to add and remove logger handlers dynamically. For instance, let's say that you identified that your application is doing way too many iops on the local disk when logging to a file. You can automatically identify that and remove the file handler and then add it once everything is ok.
-
 You can list and remove handlers currently attached to a logger:
 
 ```python
@@ -383,9 +368,9 @@ wryter.remove_handler(handler_name)
 
 By default the `_json` or `_console` handlers are added and they can also be removed.
 
-## Formatters
+### Using Formatters
 
-Currently, Wryte allows to choose between just two formatters: `json` and `console`. The `json` logger obviously doesn't require any formatting as any fields provided in the message will be propagated with the JSON string.
+Currently, Wryte allows to choose between just two formatters: `json` and `console`. The `json` formatter obviously doesn't require any formatting as any fields provided in the message will be propagated with the JSON string.
 
 The console output, on the other hand, might require formatting. Wryte's priority is to simplify and standardize the way we print and ship log messages, not to allow you to just view console logs anyway you want. I might add something in the future to allow to format console messages.
 
@@ -426,11 +411,14 @@ You can disable colored output by instantating your logger like so:
 wryter = Wryte(color=False)
 ```
 
-## Contextual logging
+### Flow Tracing and context ID's
 
-In an ideal world, when a user performs an action in an app, a context related to that event will be logged and attached to any log message relating to that event, so that it is possible to tail the entire flow from the moment the user performed the action and until, say, they got a response from the db. Woo! What a long sentence!
+Ideally, when a user performs an action in an app, a context related to that event will be logged and attached to any log message relating to that event, so that it is possible to tail the entire flow from the moment the user performed the action and until, say, they got a response from the db. Woo! What a long sentence!
 
-This, unfortunately, is not provided by any logging library that I know of, and for a good reason - it depends on many factors potentially related to that specific app.
+This, unfortunately, is not provided by any logging library that I know of, and for a good reason - it depends on many factors potentially related to that specific app. `structlog`, for instance, provides a way to log using a thread-local context, but that's specific to a thread and therefore doesn't solve the problem for distributed systems.
+A good way to solve the problem is to use a global, cross-service identifier (for instance, a user id).
+
+Specifically for non-distributed systems, you can use the `cid` generated by the `event` method and supply it as an identifier.
 
 ```python
 # cid defaults to a uuid if it isn't provided.
@@ -448,11 +436,69 @@ wryter.unbind('cid')
 The idea behind this is that a cid can be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
 
 
-## Performance optimizations
 
-* Using dict literal instead of constructor (https://stackoverflow.com/a/6612024/3332312)
-* Using tuples instead of lists (https://stackoverflow.com/a/68817/3332312)
-* Using dict subscription instead of get (https://stackoverflow.com/questions/7631929/python-dictionary-datastructure-which-method-d-or-d-get#comment58682247_7631951)
+## Configuring Wryte
+
+### Using Environment Variables to configure logging handlers
+
+One of Wryte's goals is to provide a simple way to configure loggers. Much like Grafana and Fabio, Wryte aims to be completely env-var configurable.
+
+A POC currently exists for using environment variables to enable certain handlers:
+
+```bash
+export WRYTE_FILE_PATH=PATH_TO_OUTPUT_FILE
+export WRYTE_LOGZIO_TOKEN=YOUR_LOGZIO_TOKEN
+
+export WRYTE_ELASTICSEARCH_HOST
+export WRYTE_ELASTICSEARCH_PORT (defaults to 9200)
+export WRYTE_ELASTICSEARCH_INDEX (defaults to `logs`)
+```
+
+Will automatically append `json` formatted handlers to any logger you instantiate.
+Of course, this should be configurable on a logger level so, when this is done, it should provide something like:
+
+```
+export WRYTE_logger_name_FILE_PATH=...
+export WRYTE_logger_name_LOGZIO_TOKEN=...
+```
+
+See https://github.com/nir0s/wryte/issues/10 for more info.
+
+Example:
+
+```
+$ export WRYTE_FILE_PATH=log.file
+
+$ python wryte.py
+2018-02-18T08:56:27.921500 - Wryte - INFO - Logging an error level message:
+2018-02-18T08:56:27.921898 - Wryte - ERROR - w00t
+2018-02-18T08:56:27.922055 - Wryte - INFO - Logging an event:
+2018-02-18T08:56:27.922259 - Wryte - EVENT - w00t
+  cid=5e7bbc8e-5857-4934-9a21-d134a8086319
+2018-02-18T08:56:27.922421 - Wryte - INFO - Binding more dicts to the logger:
+2018-02-18T08:56:27.922623 - Wryte - INFO - bind_test
+  bound1=value1
+  bound2=value2
+2018-02-18T08:56:27.922783 - Wryte - INFO - Unbinding keys:
+  bound1=value1
+  bound2=value2
+2018-02-18T08:56:27.922935 - Wryte - CRITICAL - unbind_test
+  bound2=value2
+2018-02-18T08:56:27.923088 - Wryte - ERROR - w00t
+  bound2=value2
+
+$ cat log.file
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.921500", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an error level message:"}
+{"name": "Wryte", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.921898", "hostname": "my-host", "pid": 19220, "type": "log", "message": "w00t"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922055", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an event:"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922259", "hostname": "my-host", "pid": 19220, "message": "w00t", "type": "event", "cid": "5e7bbc8e-5857-4934-9a21-d134a8086319"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922421", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Binding more dicts to the logger:"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922623", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "bind_test", "type": "log", "bound2": "value2"}
+{"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922783", "bound1": "value1", "hostname": "my-host", "pid": 19220, "message": "Unbinding keys:", "type": "log", "bound2": "value2"}
+{"name": "Wryte", "bound2": "value2", "message": "unbind_test", "level": "CRITICAL", "timestamp": "2018-02-18T08:56:27.922935", "hostname": "my-host", "pid": 19220, "type": "log"}
+{"name": "Wryte", "bound2": "value2", "message": "w00t", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.923088", "hostname": "my-host", "pid": 19220, "type": "log"}
+
+```
 
 ## Testing
 

@@ -373,6 +373,7 @@ class Wryte(object):
 
     def event(self, message, *objects, **kwargs):
         cid = kwargs.get('cid', str(uuid.uuid4()))
+        # TODO: Consider allowing to bind `cid` here.
         objects = objects + ({'type': 'event', 'cid': cid},)
         obj = self._enrich(message, 'info', objects, kwargs)
         self.logger.info(obj)
