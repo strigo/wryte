@@ -377,7 +377,7 @@ class Wryte(object):
         objects = objects + ({'type': 'event', 'cid': cid},)
         obj = self._enrich(message, 'info', objects, kwargs)
         self.logger.info(obj)
-        return {'cid': cid}
+        return cid
 
     def log(self, level, message, *objects, **kwargs):
         obj = self._enrich(message, level, objects, kwargs)
