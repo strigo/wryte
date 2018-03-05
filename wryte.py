@@ -263,7 +263,7 @@ class Wryte(object):
                     handler=LogzioHandler(os.getenv('WRYTE_LOGZIO_TOKEN')),
                     name='logzio-python',
                     formatter='json',
-                    level=level)
+                    level=os.getenv('WRYTE_LOGZIO_LEVEL', 'info'))
             else:
                 raise WryteError(
                     'It seems that the logzio handler is not installed. '
@@ -274,21 +274,19 @@ class Wryte(object):
             self.add_handler(
                 handler=logging.FileHandler(os.getenv('WRYTE_FILE_PATH')),
                 name='file',
-                formatter='json',
-                level=level)
+                formatter=os.getenv('WRYTE_FILE_FORMAT', 'json'),
+                level=os.getenv('WRYTE_FILE_LEVEL', 'info'))
 
         if os.getenv('WRYTE_ELASTICSEARCH_HOST'):
             es_host = os.getenv('WRYTE_ELASTICSEARCH_HOST', 'localhost')
             es_port = os.getenv('WRYTE_ELASTICSEARCH_PORT', 9200)
-            es_index = os.getenv('WRYTE_ELASTICSEARCH_INDEX', 'logs')
             self.add_handler(
                 handler=CMRESHandler(
                     hosts=[{'host': es_host, 'port': es_port}],
-                    auth_type=CMRESHandler.AuthType.NO_AUTH,
-                    es_index_name=es_index),
+                    auth_type=CMRESHandler.AuthType.NO_AUTH),
                 name='elasticsearch',
                 formatter='json',
-                level=level)
+                level=os.getenv('WRYTE_ELASTICSEARCH_LEVEL', 'info'))
 
     def add_handler(self,
                     handler,
