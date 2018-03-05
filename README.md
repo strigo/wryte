@@ -435,7 +435,24 @@ wryter.unbind('cid')
 
 The idea behind this is that a cid can be passed into any log message within the same context. "within the same context" is a very abstract defintion, and is up to the developer to implement as it might be thread-related, framework-related, or else. I intend to expand the framework, but for now, that's what it is.
 
+### Accessing lower-level logger API
 
+Wryte is built on top of Pythong's standard `logging` library. As such, you can directly access the logger's API directly:
+
+```python
+wryter = Wryte()
+
+wryter.logger.setLevel(...)
+current_level = wryter.logger.getEffectiveLevel(...)
+...
+
+```
+
+The idea behind this is three-fold:
+
+1. You shouldn't need to use `logging` directly, because why would you?
+2. You should be able to workaround anything not implemented by Wryte, because reality.
+3. For the sake of keeping Wryte as minimal as possible, some things will not be implemented in Wryte and you will be able to use the logger's API directly so that you're not limited.
 
 ## Configuring Wryte
 
