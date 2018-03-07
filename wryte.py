@@ -250,43 +250,27 @@ class Wryte(object):
 
         return log
 
+    @staticmethod
+    def _env(variable, logger=None, default=None):
+        if logger:
+            return os.getenv('WRYTE_{0}_{1}'.format(logger, variable), default)
+        else:
+            return os.getenv('WRYTE_{0}'.format(variable), default)
+
     def _configure_handlers(self, level, jsonify=False):
         if not jsonify:
             self.add_default_console_handler(level)
         else:
             self.add_default_json_handler(level)
 
-        # WIP WIP WIP!
-        if os.getenv('WRYTE_LOGZIO_TOKEN'):
-            if LOGZIO_INSTALLED:
-                self.add_handler(
-                    handler=LogzioHandler(os.getenv('WRYTE_LOGZIO_TOKEN')),
-                    name='logzio-python',
-                    formatter='json',
-                    level=os.getenv('WRYTE_LOGZIO_LEVEL', 'info'))
-            else:
-                raise WryteError(
-                    'It seems that the logzio handler is not installed. '
-                    'You can install it by running `pip install '
-                    'wryte[logzio]`')
+        if self._env('LOGZIO_TOKEN'):
+            self.add_logzio_handler()
 
-        if os.getenv('WRYTE_FILE_PATH'):
-            self.add_handler(
-                handler=logging.FileHandler(os.getenv('WRYTE_FILE_PATH')),
-                name='file',
-                formatter=os.getenv('WRYTE_FILE_FORMAT', 'json'),
-                level=os.getenv('WRYTE_FILE_LEVEL', 'info'))
+        if self._env('FILE_PATH'):
+            self.add_file_handler()
 
-        if os.getenv('WRYTE_ELASTICSEARCH_HOST'):
-            es_host = os.getenv('WRYTE_ELASTICSEARCH_HOST', 'localhost')
-            es_port = os.getenv('WRYTE_ELASTICSEARCH_PORT', 9200)
-            self.add_handler(
-                handler=CMRESHandler(
-                    hosts=[{'host': es_host, 'port': es_port}],
-                    auth_type=CMRESHandler.AuthType.NO_AUTH),
-                name='elasticsearch',
-                formatter='json',
-                level=os.getenv('WRYTE_ELASTICSEARCH_LEVEL', 'info'))
+        if self._env('ELASTICSEARCH_HOST'):
+            self.add_elasticsearch_handler()
 
     def add_handler(self,
                     handler,
@@ -331,18 +315,114 @@ class Wryte(object):
             if handler.name == name:
                 self.logger.removeHandler(handler)
 
-    def add_default_json_handler(self, level):
+    def add_default_json_handler(self, level='debug'):
         return self.add_handler(
             handler=logging.StreamHandler(sys.stdout),
             name='_json',
             formatter='json',
+            level=self._env('CONSOLE_LEVEL', level))
+
+    def add_default_console_handler(self, level='debug'):
+        name = '_console'
+        level = self._env('CONSOLE_LEVEL', default=level)
+        formatter = 'console'
+        handler = logging.StreamHandler(sys.stdout)
+
+        return self.add_handler(
+            handler=handler,
+            name=name,
+            formatter=formatter,
             level=level)
 
-    def add_default_console_handler(self, level):
-        return self.add_handler(
-            handler=logging.StreamHandler(sys.stdout),
-            name='_console',
-            formatter='console',
+    def add_file_handler(self, **kwargs):
+        name = self._env('FILE_NAME', default='file')
+        level = self._env('FILE_LEVEL', default='debug')
+        formatter = self._env('FILE_FORMATTER', default='json')
+
+        if self._env('FILE_ROTATE'):
+            handler = logging.handlers.RotatingFileHandler(
+                self._env('FILE_PATH'),
+                maxBytes=int(self._env('FILE_MAX_BYTES', default=13107200)),
+                backupCount=int(self._env('FILE_BACKUP_COUNT', default=7)))
+        elif os.name == 'nt':
+            handler = logging.FileHandler(self._env('FILE_PATH'))
+        else:
+            handler = logging.handlers.WatchedFileHandler(
+                self._env('FILE_PATH'))
+
+        self.add_handler(
+            handler=handler,
+            name=name,
+            formatter=formatter,
+            level=level)
+
+    def add_syslog_handler(self, **kwargs):
+        name = self._env('SYSLOG_NAME', default='syslog')
+        level = self._env('SYSLOG_LEVEL', default='info')
+        formatter = 'json'
+
+        syslog_host = self._env('SYSLOG_HOST', default='localhost:514')
+        syslog_host = syslog_host.split(':')
+
+        if len(syslog_host) == 2:
+            # Syslog listener
+            host, port = syslog_host
+            address = (host, port)
+        else:
+            # Unix socket or otherwise
+            address = syslog_host
+
+        handler = logging.handlers.SysLogHandler(
+            address=address,
+            facility=self._env('SYSLOG_FACILITY', default='LOG_USER'))
+
+        self.add_handler(
+            handler=handler,
+            name=name,
+            formatter=formatter,
+            level=level)
+
+    def add_logzio_handler(self, **kwargs):
+        if LOGZIO_INSTALLED:
+            name = self._env('LOGZIO_NAME', default='logzio-python')
+            level = self._env('LOGZIO_LEVEL', default='info')
+            formatter = 'json'
+            handler = LogzioHandler(self._env('LOGZIO_TOKEN'))
+
+            self.add_handler(
+                handler=handler,
+                name=name,
+                formatter=formatter,
+                level=level)
+        else:
+            raise WryteError(
+                'It seems that the logzio handler is not installed. '
+                'You can install it by running `pip install '
+                'wryte[logzio]`')
+
+    def add_elasticsearch_handler(self, **kwargs):
+        name = self._env('ELASTICSEARCH_NAME', default='elasticsearch')
+        level = self._env('ELASTICSEARCH_LEVEL', default='info')
+        formatter = 'json'
+
+        hosts = []
+        es_hosts = self._env('ELASTICSEARCH_HOST')
+        es_hosts = es_hosts.split(',')
+        for es_host in es_hosts:
+            host, port = es_host.split(':', 1)
+            hosts.append({'host': host, 'port': port})
+
+        handler_args = {
+            'hosts': hosts,
+            'auth_type': CMRESHandler.AuthType.NO_AUTH
+        }
+
+        handler = CMRESHandler(**handler_args)
+
+        self.add_handler(
+            handler=handler,
+            name=name,
+            formatter=formatter,
             level=level)
 
     def set_level(self, level):
