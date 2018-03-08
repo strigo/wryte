@@ -458,32 +458,92 @@ The idea behind this is three-fold:
 
 ### Using Environment Variables to configure logging handlers
 
+NOTE: This is WIP, so things may break / be broken. To truly be able to use this feature, Wryte will have to support logger-name-based env vars (e.g. `WRYTE_HANDLERS_logger_name_*`).
+
+NOTE: DO NOT use this feature if you have multiple loggers in the same service unless you explicitly intend to have all loggers log to all handlers configured.
+
 One of Wryte's goals is to provide a simple way to configure loggers. Much like Grafana and Fabio, Wryte aims to be completely env-var configurable.
 
-A POC currently exists for using environment variables to enable certain handlers:
+On top of having two default `console` and `json` handlers which indicate the formatting and both log to stdout, you can utilize built-in and 3rd party handlers quite easily.
 
-```bash
-export WRYTE_FILE_PATH=PATH_TO_OUTPUT_FILE
-export WRYTE_LOGZIO_TOKEN=YOUR_LOGZIO_TOKEN
+#### File Handler
 
-export WRYTE_ELASTICSEARCH_HOSTS=localhost:9200,elasticsearch.service.consul:9200
-export WRYTE_ELASTICSEARCH_INDEX (defaults to `logs`)
-```
-
-Will automatically append `json` formatted handlers to any logger you instantiate.
-Of course, this should be configurable on a logger level so, when this is done, it should provide something like:
+Wryte supports both the rotating and watching file handlers (on Windows, FileHandler replaces WatchingFileHandler if not rotating).
 
 ```
-export WRYTE_logger_name_FILE_PATH=...
-export WRYTE_logger_name_LOGZIO_TOKEN=...
+WRYTE_HANDLERS_FILE_ENABLED=true  # If set, enables the handler.
+
+WRYTE_HANDLERS_FILE_PATH=FILE_TO_LOG_TO  # (Required) Absolute path to the file logs should be written to
+
+WRYTE_HANDLERS_FILE_NAME='file'  # The logger's name
+WRYTE_HANDLERS_FILE_LEVEL='info'  # The logger's default level
+WRYTE_HANDLERS_FLIE_FORMATTER='json'  # The logger format to use
+
+WRYTE_HANDLERS_FILE_ROTATE=false  # Rotate the files? Defaults to false in favor of explicitness so that people who use logrotate won't double-rotate by accident.
+WRYTE_HANDLERS_FILE_MAX_BYTES=13107200  # Size of each file in bytes if rotating
+WRYTE_HANDLERS_FILE_BACKUP_COUNT=7  # Amount of logs files to keep
 ```
 
-See https://github.com/nir0s/wryte/issues/10 for more info.
+#### Syslog Handler
 
-Example:
+Allows to emit logs to a Syslog server
 
 ```
-$ export WRYTE_FILE_PATH=log.file
+WRYTE_HANDLERS_SYSLOG_ENABLED=true  # If set, enables the handler.
+
+WRYTE_HANDLERS_SYSLOG_NAME='syslog'  # The logger's name
+WRYTE_HANDLERS_SYSLOG_LEVEL='info'  # The logger's default level
+WRYTE_HANDLERS_SYSLOG_FORMATTER='json'  # The logger format to use
+
+WRYTE_HANDLERS_SYSLOG_HOST='localhost:514'  # Colon seprated syslog host string
+WRYTE_HANDLERS_SYSLOG_SOCKET_TYPE='udp'  # udp/tcp
+WRYTE_HANDLERS_SYSLOG_FACILITY='LOG_USER'  # Syslog facility to use (see https://success.trendmicro.com/solution/TP000086250-What-are-Syslog-Facilities-and-Levels)
+```
+
+#### Elasticsearch Handler
+
+While it may be useful to send your messages through logstash, you may also log to Elasticsearch directly.
+
+Wryte utilizes the [CMRESHandler](https://github.com/cmanaha/python-elasticsearch-logger) for this.
+Currently, only the hosts can be supplied. SSL, index name pattern, etc.. will be added later.
+
+To install the handler, run `pip install wryte[elasticsearch]`.
+
+```
+WRYTE_HANDLERS_ELASTICSEARCH_ENABLED=true  # If set, enables the handler.
+
+WRYTE_HANDLERS_ELASTICSEARCH_NAME='elasticsearch'  # The logger's name
+WRYTE_HANDLERS_ELASTICSEARCH_LEVEL='info'  # The logger's default level
+WRYTE_HANDLERS_ELASTICSEARCH_FORMATTER='json'  # The logger format to use
+
+WRYTE_HANDLERS_ELASTICSEARCH_HOST=http://es.dc1.service.consul:9200,http://es.dc1.service.consul:9200 # (Required) A comma-separated list of host:port pairs to use.
+```
+
+#### Logzio Handler
+
+You can also directly send your logs to logzio via the official [logzio handler](https://github.com/logzio/logzio-python-handler).
+
+To install the handler, run `pip install wryte[logzio]`.
+
+```
+WRYTE_HANDLERS_LOGZIO_ENABLED=true  # If set, enables the handler.
+
+WRYTE_HANDLERS_LOGZIO_NAME='logzio'  # The logger's name
+WRYTE_HANDLERS_LOGZIO_LEVEL='info'  # The logger's default level
+WRYTE_HANDLERS_LOGZIO_FORMATTER='json'  # The logger format to use
+
+WRYTE_HANDLERS_LOGZIO_TOKEN=oim12o3i3ou2itj3jkdng3bgjs1gbg # (Required) Your logzio API token
+```
+
+See https://github.com/nir0s/wryte/issues/10 and https://github.com/nir0s/wryte/issues/18 for more info.
+
+#### Examples
+
+Logging to file:
+
+```
+$ export WRYTE_HANDLERS_FILE_ENABLED=true
+$ export WRYTE_HANDLERS_FILE_PATH=log.file
 
 $ python wryte.py
 2018-02-18T08:56:27.921500 - Wryte - INFO - Logging an error level message:
