@@ -458,13 +458,14 @@ The idea behind this is three-fold:
 
 ### Using Environment Variables to configure logging handlers
 
-NOTE: This is WIP, so things may break / be broken. To truly be able to use this feature, Wryte will have to support logger-name-based env vars (e.g. `WRYTE_HANDLERS_logger_name_*`).
-
-NOTE: DO NOT use this feature if you have multiple loggers in the same service unless you explicitly intend to have all loggers log to all handlers configured.
+NOTE: This is WIP, so things may break / be broken.
 
 One of Wryte's goals is to provide a simple way to configure loggers. Much like Grafana and Fabio, Wryte aims to be completely env-var configurable.
 
 On top of having two default `console` and `json` handlers which indicate the formatting and both log to stdout, you can utilize built-in and 3rd party handlers quite easily.
+
+Below are the global env vars used to configure all loggers instantiated by Wryte.
+If you want to apply a handler to a specific logger, use the `WRYTE_$LOGGER_NAME_HANDLERS_*` pattern instead (e.g. `WRYTE_WEBLOGGER_HANDLERS_FILE_ENABLED` - all uppercase).
 
 #### File Handler
 

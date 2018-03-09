@@ -138,14 +138,14 @@ class Wryte(object):
 
         If `hostname` isn't provided, it will be retrieved via socket.
         """
-        logger_name = name or __name__
+        self.logger_name = name or __name__
 
         self.pretty = pretty
         self.color = color
         self.simple = simple
 
-        self._log = self._get_base(logger_name, hostname)
-        self.logger = self._logger(logger_name)
+        self._log = self._get_base(self.logger_name, hostname)
+        self.logger = self._logger(self.logger_name)
 
         if not bare:
             self._configure_handlers(level, jsonify)
@@ -250,12 +250,11 @@ class Wryte(object):
 
         return log
 
-    @staticmethod
-    def _env(variable, logger=None, default=None):
-        if logger:
-            return os.getenv('WRYTE_{0}_{1}'.format(logger, variable), default)
-        else:
-            return os.getenv('WRYTE_{0}'.format(variable), default)
+    def _env(self, variable, default=None):
+        logger_env = os.getenv('WRYTE_{0}_{1}'.format(
+            self.logger_name.upper(), variable), default)
+        global_env = os.getenv('WRYTE_{0}'.format(variable), default)
+        return logger_env or global_env or None
 
     def _configure_handlers(self, level, jsonify=False):
         if not jsonify:
