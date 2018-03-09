@@ -12,7 +12,7 @@ def read(*parts):
 
 setup(
     name='wryte',
-    version="0.1.4",
+    version="0.1.5",
     url='https://github.com/nir0s/wryte',
     author='nir0s',
     author_email='nir36g@gmail.com',

@@ -467,41 +467,48 @@ On top of having two default `console` and `json` handlers which indicate the fo
 Below are the global env vars used to configure all loggers instantiated by Wryte.
 If you want to apply a handler to a specific logger, use the `WRYTE_$LOGGER_NAME_HANDLERS_*` pattern instead (e.g. `WRYTE_WEBLOGGER_HANDLERS_FILE_ENABLED` - all uppercase).
 
-#### File Handler
+For each handler, there are four basic env vars:
+
+* `WRYTE_HANDLERS_TYPE_ENABLED`   -> Enables the handler if set
+* `WRYTE_HANDLERS_TYPE_NAME`      -> The handler's name (defaults to `TYPE` in lowercase)
+* `WRYTE_HANDLERS_TYPE_LEVEL`     -> The handler's logging level (defaults to `info` unless explicitly stated otherwise)
+* `WRYTE_HANDLERS_TYPE_FORMATTER` -> The handler's formatter (`json` or `console`, defaults to `json`)
+
+On top of those, there are handler specific configuration options:
+
+#### FILE Handler
 
 Wryte supports both the rotating and watching file handlers (on Windows, FileHandler replaces WatchingFileHandler if not rotating).
 
 ```
-WRYTE_HANDLERS_FILE_ENABLED=true  # If set, enables the handler.
+# (Required) Absolute path to the file logs should be written to
+export WRYTE_HANDLERS_FILE_PATH=FILE_TO_LOG_TO
 
-WRYTE_HANDLERS_FILE_PATH=FILE_TO_LOG_TO  # (Required) Absolute path to the file logs should be written to
+# Rotate the files? Defaults to false in favor of explicitness so that people who use logrotate won't double-rotate by accident.
+export WRYTE_HANDLERS_FILE_ROTATE=false
 
-WRYTE_HANDLERS_FILE_NAME='file'  # The logger's name
-WRYTE_HANDLERS_FILE_LEVEL='info'  # The logger's default level
-WRYTE_HANDLERS_FLIE_FORMATTER='json'  # The logger format to use
+# Size of each file in bytes if rotating
+export WRYTE_HANDLERS_FILE_MAX_BYTES=13107200
 
-WRYTE_HANDLERS_FILE_ROTATE=false  # Rotate the files? Defaults to false in favor of explicitness so that people who use logrotate won't double-rotate by accident.
-WRYTE_HANDLERS_FILE_MAX_BYTES=13107200  # Size of each file in bytes if rotating
-WRYTE_HANDLERS_FILE_BACKUP_COUNT=7  # Amount of logs files to keep
+# Amount of logs files to keep
+export WRYTE_HANDLERS_FILE_BACKUP_COUNT=7
 ```
 
-#### Syslog Handler
+#### SYSLOG Handler
 
 Allows to emit logs to a Syslog server
 
 ```
-WRYTE_HANDLERS_SYSLOG_ENABLED=true  # If set, enables the handler.
+# Colon seprated syslog host string
+export WRYTE_HANDLERS_SYSLOG_HOST='localhost:514'
 
-WRYTE_HANDLERS_SYSLOG_NAME='syslog'  # The logger's name
-WRYTE_HANDLERS_SYSLOG_LEVEL='info'  # The logger's default level
-WRYTE_HANDLERS_SYSLOG_FORMATTER='json'  # The logger format to use
+export WRYTE_HANDLERS_SYSLOG_SOCKET_TYPE='udp'  # udp/tcp
 
-WRYTE_HANDLERS_SYSLOG_HOST='localhost:514'  # Colon seprated syslog host string
-WRYTE_HANDLERS_SYSLOG_SOCKET_TYPE='udp'  # udp/tcp
-WRYTE_HANDLERS_SYSLOG_FACILITY='LOG_USER'  # Syslog facility to use (see https://success.trendmicro.com/solution/TP000086250-What-are-Syslog-Facilities-and-Levels)
+# Syslog facility to use (see https://success.trendmicro.com/solution/TP000086250-What-are-Syslog-Facilities-and-Levels)
+export WRYTE_HANDLERS_SYSLOG_FACILITY='LOG_USER'
 ```
 
-#### Elasticsearch Handler
+#### ELASTICSERACH Handler
 
 While it may be useful to send your messages through logstash, you may also log to Elasticsearch directly.
 
@@ -511,29 +518,19 @@ Currently, only the hosts can be supplied. SSL, index name pattern, etc.. will b
 To install the handler, run `pip install wryte[elasticsearch]`.
 
 ```
-WRYTE_HANDLERS_ELASTICSEARCH_ENABLED=true  # If set, enables the handler.
-
-WRYTE_HANDLERS_ELASTICSEARCH_NAME='elasticsearch'  # The logger's name
-WRYTE_HANDLERS_ELASTICSEARCH_LEVEL='info'  # The logger's default level
-WRYTE_HANDLERS_ELASTICSEARCH_FORMATTER='json'  # The logger format to use
-
-WRYTE_HANDLERS_ELASTICSEARCH_HOST=http://es.dc1.service.consul:9200,http://es.dc1.service.consul:9200 # (Required) A comma-separated list of host:port pairs to use.
+# (Required) A comma-separated list of host:port pairs to use.
+export WRYTE_HANDLERS_ELASTICSEARCH_HOST=http://es.dc1.service.consul:9200,http://es.dc1.service.consul:9200
 ```
 
-#### Logzio Handler
+#### LOGZIO Handler
 
 You can also directly send your logs to logzio via the official [logzio handler](https://github.com/logzio/logzio-python-handler).
 
 To install the handler, run `pip install wryte[logzio]`.
 
 ```
-WRYTE_HANDLERS_LOGZIO_ENABLED=true  # If set, enables the handler.
-
-WRYTE_HANDLERS_LOGZIO_NAME='logzio'  # The logger's name
-WRYTE_HANDLERS_LOGZIO_LEVEL='info'  # The logger's default level
-WRYTE_HANDLERS_LOGZIO_FORMATTER='json'  # The logger format to use
-
-WRYTE_HANDLERS_LOGZIO_TOKEN=oim12o3i3ou2itj3jkdng3bgjs1gbg # (Required) Your logzio API token
+# (Required) Your logzio API token
+export WRYTE_HANDLERS_LOGZIO_TOKEN=oim12o3i3ou2itj3jkdng3bgjs1gbg
 ```
 
 See https://github.com/nir0s/wryte/issues/10 and https://github.com/nir0s/wryte/issues/18 for more info.
