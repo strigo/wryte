@@ -576,6 +576,23 @@ $ cat log.file
 
 ```
 
+## Performance
+
+I haven't performed a deep benchmark on Wryte yet and am waiting to finish an initial implementation I will feel comfortable with before doing so.
+
+A very shallow benchmark (on my i7 1st Gen x1-carbon) showed:
+
+(For 10000 messages averaged over 30 runs, coloring disabled):
+
+`log.info('My Message')`
+
+* Wryte     -> 407ms
+* Logbook   -> 479ms
+* structlog -> 750ms
+* logging   -> 279ms
+
+Not bad. I'll be optimizing for performance wherever possible.
+
 ## Testing
 
 ```shell
