@@ -65,6 +65,7 @@ class JsonFormatter(logging.Formatter):
         self.pretty = pretty
 
     def format(self, record):
+        # TODO: Allow to use ujson or radpijson via config
         return json.dumps(record.msg, indent=4 if self.pretty else None)
 
 
@@ -88,10 +89,10 @@ class ConsoleFormatter(logging.Formatter):
         return mapping.get(level.lower())
 
     def format(self, record):
-        # TODO: The handling of the different fields here will heavily impact
-        # performance since every message goes through this flow. Solve this.
+        # TODO: No need to copy here
         record = record.msg.copy()
 
+        # TODO: pop instead so that we don't need to pop after
         name = record['name']
         timestamp = record['timestamp']
         level = record['level'] if record['type'] == 'log' else 'EVENT'
@@ -100,9 +101,11 @@ class ConsoleFormatter(logging.Formatter):
         # We no longer need them as part of the dict.
         p = ('name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid')
         for key in p:
+            # TODO: del instead of popping
             record.pop(key)
 
         if COLOR_ENABLED and self.color and not self.simple:
+            # TODO: Use string formatting instead
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
@@ -110,13 +113,20 @@ class ConsoleFormatter(logging.Formatter):
         if self.simple:
             msg = message
         else:
+            # TODO: Use ' - '.join((timestamp, name, level, message))
             msg = '{0} - {1} - {2} - {3}'.format(
                 timestamp, name, level, message)
+
         if self.pretty:
+            # TODO: Find an alternative to concat here
+            # msg += ''.join("\n  %s=%s" % (k, v)
+            #                for (k, v) in record.items())
             for key, value in record.items():
                 msg += '\n  {0}={1}'.format(key, value)
         elif record:
+            # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
+
         return msg
 
 
@@ -180,8 +190,7 @@ class Wryte(object):
 
     @staticmethod
     def _get_timestamp():
-        # TODO: Cosnider ussing return .strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-        # instead for console only and isoformat for aggregation.
+        # TODO: Allow to use udatetime instead for faster evals
         return datetime.datetime.now().isoformat()
 
     def _normalize_objects(self, objects):
@@ -192,6 +201,7 @@ class Wryte(object):
         e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
         return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
         """
+        # TODO: Generate a consolidated dict instead of a list of objects
         normalized_objects = []
         for obj in objects:
             try:
@@ -202,6 +212,7 @@ class Wryte(object):
             # TODO: Should be a JsonDecoderError
             except Exception:  # NOQA
                 if '=' in obj:
+                    # TODO: Remove supports for kv pair strings
                     normalized_objects.append(self._split_kv(obj))
                 else:
                     normalized_objects.append(
@@ -244,7 +255,11 @@ class Wryte(object):
         # within the chain, they will be overriden here.
         log.update({
             'message': message,
+            # TODO: declare `upper` method when instantiating class or
+            # simply remove it altogether.
             'level': level.upper(),
+            # TODO: Maybe we don't need a method here and can directly
+            # call the datetime method? Perf-wise, that is..
             'timestamp': self._get_timestamp()
         })
 
@@ -482,7 +497,9 @@ class Wryte(object):
 
     def log(self, level, message, *objects, **kwargs):
         obj = self._enrich(message, level, objects, kwargs)
+        # TODO: Change to `_set_level`
         if kwargs.get('set_level'):
+            # TODO: Use subscriptiong instead
             self.set_level(kwargs.get('set_level'))
         self.logger.log(LEVEL_CONVERSION[level], obj)
 
@@ -507,14 +524,18 @@ class Wryte(object):
 
     def error(self, message, *objects, **kwargs):
         if kwargs.get('_set_level'):
+            # TODO: Use subscriptiong instead
             self.set_level(kwargs.get('_set_level'))
+            # TODO: Don't pop, this could be useful in the log
             kwargs.pop('_set_level')
         obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
         if kwargs.get('_set_level'):
+            # TODO: Use subscriptiong instead
             self.set_level(kwargs.get('_set_level'))
+            # TODO: Don't pop, this could be useful in the log
             kwargs.pop('_set_level')
         obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
