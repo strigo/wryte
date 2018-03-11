@@ -113,7 +113,7 @@ class ConsoleFormatter(logging.Formatter):
         context (context i.e. k=v).
         """
         # TODO: No need to copy here
-        record = record.msg.copy()
+        record = record.msg
 
         # TODO: pop instead so that we don't need to pop after
         name = record['name']
@@ -398,6 +398,7 @@ class Wryte(object):
         for handler in self.logger.handlers:
             if handler.name == name:
                 self.logger.removeHandler(handler)
+                # TODO: Break here. WTF?
 
     def add_default_json_handler(self, level='debug'):
         return self.add_handler(
