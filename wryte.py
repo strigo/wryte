@@ -143,6 +143,7 @@ class ConsoleFormatter(logging.Formatter):
 
         if self.pretty:
             # TODO: Find an alternative to concat here
+            # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
             # msg += ''.join("\n  %s=%s" % (k, v)
             #                for (k, v) in record.items())
             for key, value in record.items():
@@ -215,6 +216,16 @@ class Wryte(object):
     @staticmethod
     def _get_timestamp():
         # TODO: Allow to use udatetime instead for faster evals
+        # now = datetime.datetime.now()
+        # return '{}-{:02d}-{:02d}T{:02d}:{}:{}.{:03d}'.format(
+        #     now.year, now.month, now.day,
+        #     now.hour, now.minute, now.second, now.microsecond
+        # )
+        # return '%d-%02d-%02dT%02d:%02d:%02d.%d' % (
+        #     now.year, now.month, now.day,
+        #     now.hour, now.minute, now.second, now.microsecond
+        # )
+
         return datetime.datetime.now().isoformat()
 
     def _normalize_objects(self, objects):
