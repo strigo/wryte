@@ -352,6 +352,7 @@ class Wryte(object):
         `name` is the handler's name (not the logger's name).
         """
         if level.lower() not in LEVEL_CONVERSION.keys():
+            # TODO: Don't fail here, simply log the error
             raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
 
@@ -379,7 +380,7 @@ class Wryte(object):
     def list_handlers(self):
         """Return a list of all handlers attached to a logger
         """
-        return (handler.name for handler in self.logger.handlers)
+        return [handler.name for handler in self.logger.handlers]
 
     def remove_handler(self, name):
         """Remove a handler by its name (set in `add_handler`)
@@ -479,6 +480,7 @@ class Wryte(object):
                 formatter=formatter,
                 level=level)
         else:
+            # TODO: Don't fail here, simply log the error:
             raise WryteError(
                 'It seems that the logzio handler is not installed. '
                 'You can install it by running `pip install '
@@ -514,6 +516,7 @@ class Wryte(object):
                 formatter=formatter,
                 level=level)
         else:
+            # TODO: Don't fail here, simply log the error
             raise WryteError(
                 'It seems that the elasticsearch handler is not installed. '
                 'You can install it by running `pip install '
@@ -527,6 +530,7 @@ class Wryte(object):
         # This would reduce overhead when using `set_level` in
         # error messages under heavy load.
         if level.lower() not in LEVEL_CONVERSION.keys():
+            # TODO: Don't fail here, simply log the error
             raise WryteError('Level must be one of {0}'.format(
                 LEVEL_CONVERSION.keys()))
 
@@ -558,6 +562,7 @@ class Wryte(object):
         explicitly passed in kwargs. Additionally, the `type` of the
         log will be `event`, instead of log, like in other cases.
         """
+        # TODO: Prefix cid key with underscore
         cid = kwargs.get('cid', str(uuid.uuid4()))
         # TODO: Consider allowing to bind `cid` here.
         objects = objects + ({'type': 'event', 'cid': cid},)
@@ -681,24 +686,3 @@ else:
         sys.exit(
             "To use Wryte's CLI you must first install certain dependencies. "
             "Please run `pip install wryte[cli]` to enable the CLI.")
-
-if __name__ == "__main__":
-    wryter = Wryte(name='Wryte', level='info')
-    wryter.info('Logging an error level message:')
-    wryter.log('error', 'w00t')
-
-    wryter.info('Logging an event:', w00t='d')
-    wryter.event('w00t')
-
-    wryter.info('Binding more dicts to the logger:')
-    wryter.bind({'bound1': 'value1'}, 'bound2=value2')
-    wryter.info('bind_test')
-
-    wryter.info('Unbinding keys:')
-    wryter.unbind('bound1')
-    wryter.critical('unbind_test')
-
-    wryter.error('w00t', set_level='debug')
-
-    wryter.info('test-kwargs', key1='value')
-    wryter.error('message', set_level='debug', x='y', a='b')
