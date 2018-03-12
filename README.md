@@ -29,6 +29,7 @@ Wryte aims to provide a simple API for logging in Python:
 * Context binding to prevent repetition
 * Retroactive logging (WIP)
 * Assist in user tracing (via auto-provided context ids)
+* Zero exceptions. There should be zero logging exceptions causing the app to crash but rather Wryte should log errors whenever logging errors occur.
 
 The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON containing the same information with some additional contextual information over the wire (to a log aggregation backend e.g. ELK/Graylog2)
 

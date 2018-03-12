@@ -89,6 +89,26 @@ class ConsoleFormatter(logging.Formatter):
         return mapping.get(level.lower())
 
     def format(self, record):
+        """Formats the message to be human readable
+
+        This formatter receives a dictionary as `msg`. It then removes
+        irrelevant fields and declare generates a string that looks like so:
+
+        2018-02-01T15:01:08 - MyLogger - INFO - My interesting message
+            key1=value1
+            key2=value2
+
+         * If `simple` is True, only `message` will be printed inline.
+         * If `pretty` is True, kv's will be printed as json instead of k=v
+         * If `color` is True, fields will be printed in color.
+
+        Note that coloring has a significant performance cost so you should
+        not use color if you're not logging in a CLI client
+        (but rather to journald or whatever).
+
+        Performance is also reduced by the amount of fields you have in your
+        context (context i.e. k=v).
+        """
         # TODO: No need to copy here
         record = record.msg.copy()
 
@@ -147,6 +167,12 @@ class Wryte(object):
         unless `jsonify` is True.
 
         If `hostname` isn't provided, it will be retrieved via socket.
+
+        See `ConsoleFormatter` for information on `color`, `pretty` and
+        `simple`.
+
+        `self.logger` exposes the stdlib's logging API directly so that
+        the logger isn't bound only by what Wryte provides.
         """
         self.logger_name = name or __name__
 
@@ -170,6 +196,9 @@ class Wryte(object):
     @staticmethod
     def _get_base(name, hostname):
         """Generate base fields for each log message.
+
+        This is evaluated once when the logger's instance is instantiated.
+        It is then later copied by each log message.
         """
         # TODO: Document that these are only generated once.
         return {
@@ -200,6 +229,9 @@ class Wryte(object):
 
         e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
         return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
+
+        A `bad_object_uuid` field will be added to the context if an object
+        doesn't fit the supported formats.
         """
         # TODO: Generate a consolidated dict instead of a list of objects
         normalized_objects = []
@@ -220,12 +252,12 @@ class Wryte(object):
         return normalized_objects
 
     def _enrich(self, message, level, objects, kwargs=None):
-        """Returns a metadata enriched object which includes the level,
+        """Return a metadata enriched object which includes the level,
         message and keys provided in all objects.
 
         Example:
 
-        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'],
+        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'] k=v,
 
         Return:
         {
@@ -234,6 +266,7 @@ class Wryte(object):
             'message': 'MESSAGE',
             'key1': 'value1',
             'key2': 'value2',
+            'k': 'v',
             'name': 'my-logger-name',
             'hostname': 'my-host',
             'pid': 51223
@@ -266,12 +299,28 @@ class Wryte(object):
         return log
 
     def _env(self, variable, default=None):
+        """Return the value of an environment variable if it is set.
+
+        This is done by first looking at `WRYTE_LOGGER_NAME_VARIABLE`
+        and then looking at the more general `WRYTE_VARIABLE`.
+
+        For example, `WRYTE_MY_LOGGER_HANDLERS_LOGZIO_TOKEN` will return
+        the content of `WRYTE_MY_LOGGER_HANDLERS_LOGZIO_TOKEN` if it is
+        set and will only apply to the `MY_LOGGER` logger.
+
+        Setting the variable `WRYTE_HANDLERS_LOGZIO_TOKEN` means
+        that it applies to all loggers.
+        """
         logger_env = os.getenv('WRYTE_{0}_{1}'.format(
             self.logger_name.upper(), variable), default)
         global_env = os.getenv('WRYTE_{0}'.format(variable), default)
         return logger_env or global_env or None
 
     def _configure_handlers(self, level, jsonify=False):
+        """Configure handlers for the logger's instance.
+
+        This is done on instantiation.
+        """
         if not jsonify:
             self.add_default_console_handler(level)
         else:
@@ -294,10 +343,13 @@ class Wryte(object):
                     name=None,
                     formatter='json',
                     level='info'):
-        """Add a handler to the logger instance.
+        """Add a handler to the logger instance and return its name.
 
-        A handler can be any standard `logging` handler.
-        Formatters are limited to `console` and json`.
+        A `handler` can be any standard `logging` handler.
+        `formatter` can be one of `console`, `json` or a formatter instance.
+
+        Choosing `console`/`json` will use the default console/json handlers.
+        `name` is the handler's name (not the logger's name).
         """
         if level.lower() not in LEVEL_CONVERSION.keys():
             raise WryteError('Level must be one of {0}'.format(
@@ -325,9 +377,13 @@ class Wryte(object):
         return name
 
     def list_handlers(self):
+        """Return a list of all handlers attached to a logger
+        """
         return (handler.name for handler in self.logger.handlers)
 
     def remove_handler(self, name):
+        """Remove a handler by its name (set in `add_handler`)
+        """
         for handler in self.logger.handlers:
             if handler.name == name:
                 self.logger.removeHandler(handler)
@@ -464,6 +520,8 @@ class Wryte(object):
                 'wryte[elasticsearch]`')
 
     def set_level(self, level):
+        """Set the current logger instance's level.
+        """
         # TODO: Consider removing this check and letting the user
         # take the hit incase they provide an unreasonable level.
         # This would reduce overhead when using `set_level` in
@@ -475,6 +533,10 @@ class Wryte(object):
         self.logger.setLevel(level.upper())
 
     def bind(self, *objects, **kwargs):
+        """Bind context to the logger's instance.
+
+        After binding, each log entry will contain the bound fields.
+        """
         objects = self._normalize_objects(objects)
         for part in objects:
             self._log.update(part)
@@ -483,11 +545,19 @@ class Wryte(object):
             self._log.update(kwargs)
 
     def unbind(self, *keys):
+        """Unbind previously bound context.
+        """
         # TODO: Support unbinding nested field in context
         for key in keys:
             self._log.pop(key)
 
     def event(self, message, *objects, **kwargs):
+        """Log an event and return a cid for it.
+
+        Once an event is fired, a `cid` is generated for it unless
+        explicitly passed in kwargs. Additionally, the `type` of the
+        log will be `event`, instead of log, like in other cases.
+        """
         cid = kwargs.get('cid', str(uuid.uuid4()))
         # TODO: Consider allowing to bind `cid` here.
         objects = objects + ({'type': 'event', 'cid': cid},)
@@ -496,11 +566,26 @@ class Wryte(object):
         return cid
 
     def log(self, level, message, *objects, **kwargs):
+        """Just log.
+
+        This is meant to be used programatically when you
+        don't know what the level will be in advance.
+
+        This is provided so that you don't have to use
+        `getattr(logger, level)()` and instead just use
+        logger.log(level, message, ...)
+
+        Note that This is less performant than other logging methods
+        (e.g. info, debug) as level conversion takes place since the user
+        can practically pass weird logging levels.
+        """
         obj = self._enrich(message, level, objects, kwargs)
         # TODO: Change to `_set_level`
         if kwargs.get('set_level'):
-            # TODO: Use subscriptiong instead
+            # TODO: Use subscription instead
             self.set_level(kwargs.get('set_level'))
+        # TODO: Protect the user from throwing an exception here when
+        # choosing a bad log level.
         self.logger.log(LEVEL_CONVERSION[level], obj)
 
     # Ideally, we'd use `self.log` for all of these, but since
