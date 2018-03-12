@@ -119,7 +119,8 @@ class ConsoleFormatter(logging.Formatter):
         message = record['message']
 
         # We no longer need them as part of the dict.
-        p = ('name', 'timestamp', 'level', 'message', 'type', 'hostname', 'pid')
+        p = ('name', 'timestamp', 'level', 'message',
+             'type', 'hostname', 'pid')
         for key in p:
             # TODO: del instead of popping
             record.pop(key)
@@ -420,7 +421,8 @@ class Wryte(object):
                 self._env('HANDLERS_FILE_PATH'),
                 maxBytes=int(
                     self._env('HANDLERS_FILE_MAX_BYTES', default=13107200)),
-                backupCount=int(self._env('HANDLERS_FILE_BACKUP_COUNT', default=7)))
+                backupCount=int(
+                    self._env('HANDLERS_FILE_BACKUP_COUNT', default=7)))
         elif os.name == 'nt':
             handler = logging.FileHandler(self._env('HANDLERS_FILE_PATH'))
         else:
