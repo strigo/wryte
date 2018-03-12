@@ -59,7 +59,8 @@ from wryte import Wryte
 
 wryter = Wryte(name='app')
 wryter.info('My Message')
-2017-12-22T17:02:59.550920 - app - INFO - my message
+
+# 2017-12-22T17:02:59.550920 - app - INFO - my message
 ...
 
 ```
@@ -185,10 +186,10 @@ wryter = Wryte(name='wryte', level='debug')
 wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), name='logzio', formatter='json', level='info')
 
 wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
-2017-12-22T17:02:59.550920 - app - INFO - my message
-  key1=value1,
-  key2=value2,
-  who=where
+# 2017-12-22T17:02:59.550920 - app - INFO - my message
+#  key1=value1,
+#  key2=value2,
+#  who=where
 
 ...
 
@@ -220,10 +221,10 @@ For example:
 
 ```python
 wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
-2017-12-22T17:02:59.550920 - app - INFO - my message
-  key1=value1,
-  key2=value2,
-  who=where
+# 2017-12-22T17:02:59.550920 - app - INFO - my message
+#  key1=value1,
+#  key2=value2,
+#  who=where
 
 wryter.error('Logging kwargs', key='value')  # kwargs
 wryter.debug('Logging JSON strings', '{"key": "value"}')  # JSON strings
