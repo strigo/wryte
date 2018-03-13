@@ -339,6 +339,15 @@ class Wryte(object):
         if self._env('HANDLERS_ELASTICSEARCH_ENABLED'):
             self.add_elasticsearch_handler()
 
+    def _assert_level(self, level):
+        levels = LEVEL_CONVERSION.keys()
+
+        if level.lower() not in levels:
+            self.logger.exception('Level must be one of {0}'.format(
+                levels))
+            return False
+        return True
+
     def add_handler(self,
                     handler,
                     name=None,
@@ -352,12 +361,12 @@ class Wryte(object):
         Choosing `console`/`json` will use the default console/json handlers.
         `name` is the handler's name (not the logger's name).
         """
-        if level.lower() not in LEVEL_CONVERSION.keys():
-            # TODO: Don't fail here, simply log the error
-            raise WryteError('Level must be one of {0}'.format(
-                LEVEL_CONVERSION.keys()))
-
         name = name or str(uuid.uuid4())
+
+        if self._assert_level(level):
+            self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
+        else:
+            return
 
         # TODO: Allow to ignore fields in json formatter
         # TODO: Allow to remove field printing in console formatter
@@ -370,10 +379,10 @@ class Wryte(object):
             _formatter = ConsoleFormatter(pretty, self.color, self.simple)
         else:
             _formatter = formatter
+
         handler.setFormatter(_formatter)
         handler.set_name(name)
 
-        self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
         self.logger.addHandler(handler)
 
         return name
@@ -410,19 +419,28 @@ class Wryte(object):
             level=level)
 
     def add_file_handler(self, **kwargs):
-        assert self._env('HANDLERS_FILE_PATH')
+        if not self._env('HANDLERS_FILE_PATH'):
+            self.logger.warn('File handler file path not set')
 
         name = self._env('HANDLERS_FILE_NAME', default='file')
         level = self._env('HANDLERS_FILE_LEVEL', default='info')
         formatter = self._env('HANDLERS_FILE_FORMATTER', default='json')
 
         if self._env('HANDLERS_FILE_ROTATE'):
+            try:
+                max_bytes = int(
+                    self._env('HANDLERS_FILE_MAX_BYTES', default=13107200))
+                backup_count = int(
+                    self._env('HANDLERS_FILE_BACKUP_COUNT', default=7))
+            except ValueError:
+                self.logger.exception(
+                    'MAX_BYTES and BACKUP_COUNT must be integers')
+                return
+
             handler = logging.handlers.RotatingFileHandler(
                 self._env('HANDLERS_FILE_PATH'),
-                maxBytes=int(
-                    self._env('HANDLERS_FILE_MAX_BYTES', default=13107200)),
-                backupCount=int(
-                    self._env('HANDLERS_FILE_BACKUP_COUNT', default=7)))
+                maxBytes=max_bytes,
+                backupCount=backup_count)
         elif os.name == 'nt':
             handler = logging.FileHandler(self._env('HANDLERS_FILE_PATH'))
         else:
@@ -453,7 +471,9 @@ class Wryte(object):
             address = syslog_host
 
         socket_type = self._env('HANDLERS_SYSLOG_SOCKET_TYPE', default='udp')
-        assert socket_type in ('tcp', 'udp')
+        if socket_type not in ('tcp', 'udp'):
+            self.logger.warn(
+                'syslog handler socket type must be one of tcp/udp')
 
         handler = logging.handlers.SysLogHandler(
             address=address,
@@ -469,7 +489,8 @@ class Wryte(object):
 
     def add_logzio_handler(self, **kwargs):
         if LOGZIO_INSTALLED:
-            assert self._env('HANDLERS_LOGZIO_TOKEN')
+            if not self._env('HANDLERS_LOGZIO_TOKEN'):
+                self.logger.warn('Logzio handler token not set')
 
             name = self._env('HANDLERS_LOGZIO_NAME', default='logzio')
             level = self._env('HANDLERS_LOGZIO_LEVEL', default='info')
@@ -482,15 +503,15 @@ class Wryte(object):
                 formatter=formatter,
                 level=level)
         else:
-            # TODO: Don't fail here, simply log the error:
-            raise WryteError(
+            self.logger.error(
                 'It seems that the logzio handler is not installed. '
                 'You can install it by running `pip install '
                 'wryte[logzio]`')
 
     def add_elasticsearch_handler(self, **kwargs):
         if ELASTICSEARCH_INSTALLED:
-            assert self._env('HANDLERS_ELASTICSEARCH_HOST')
+            if not self._env('HANDLERS_ELASTICSEARCH_HOST'):
+                self.logger.warn('Elasticsearch handler host not set')
 
             name = self._env('HANDLERS_ELASTICSEARCH_NAME',
                              default='elasticsearch')
@@ -518,8 +539,7 @@ class Wryte(object):
                 formatter=formatter,
                 level=level)
         else:
-            # TODO: Don't fail here, simply log the error
-            raise WryteError(
+            self.logger.error(
                 'It seems that the elasticsearch handler is not installed. '
                 'You can install it by running `pip install '
                 'wryte[elasticsearch]`')
@@ -531,10 +551,8 @@ class Wryte(object):
         # take the hit incase they provide an unreasonable level.
         # This would reduce overhead when using `set_level` in
         # error messages under heavy load.
-        if level.lower() not in LEVEL_CONVERSION.keys():
-            # TODO: Don't fail here, simply log the error
-            raise WryteError('Level must be one of {0}'.format(
-                LEVEL_CONVERSION.keys()))
+        if not self._assert_level(level):
+            return
 
         self.logger.setLevel(level.upper())
 
@@ -587,12 +605,11 @@ class Wryte(object):
         can practically pass weird logging levels.
         """
         obj = self._enrich(message, level, objects, kwargs)
-        # TODO: Change to `_set_level`
-        if kwargs.get('set_level'):
-            # TODO: Use subscription instead
-            self.set_level(kwargs.get('set_level'))
-        # TODO: Protect the user from throwing an exception here when
-        # choosing a bad log level.
+        if kwargs.get('_set_level'):
+            self.set_level(kwargs.get('_set_level'))
+
+        if not self._assert_level(level):
+            return
         self.logger.log(LEVEL_CONVERSION[level], obj)
 
     # Ideally, we'd use `self.log` for all of these, but since
