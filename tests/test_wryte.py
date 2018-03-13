@@ -121,13 +121,12 @@ class TestWryte(object):
 
     def test_add_handler_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
-        with pytest.raises(wryte.WryteError) as ex:
-            w.add_handler(
-                handler=logging.StreamHandler(sys.stdout),
-                name='_json',
-                formatter='json',
-                level='BOOBOO')
-        assert 'Level must be one of' in str(ex)
+        w.add_handler(
+            handler=logging.StreamHandler(sys.stdout),
+            name='_json',
+            formatter='json',
+            level='BOOBOO')
+        assert len(w.list_handlers()) == 0
 
     def test_another_formatter(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
@@ -159,6 +158,7 @@ class TestWryte(object):
     def test_remove_nonexisting_handler(self):
         w = Wryte(name=str(uuid.uuid4()))
         w.remove_handler('banana')
+        assert len(w.list_handlers()) == 1
 
     def test_set_level(self):
         w = Wryte(name=str(uuid.uuid4()))
@@ -168,9 +168,13 @@ class TestWryte(object):
 
     def test_set_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()))
-        with pytest.raises(wryte.WryteError) as ex:
-            w.set_level('deboog')
-        assert 'Level must be one of' in str(ex)
+        assert w.logger.getEffectiveLevel() == 20
+        w.set_level('deboog')
+        assert w.logger.getEffectiveLevel() == 20
+
+    def test_log_bad_level(self):
+        w = Wryte(name=str(uuid.uuid4()))
+        w.log('booboo', 'My Error')
 
     def test_set_level_from_error(self):
         w = Wryte(name=str(uuid.uuid4()))
@@ -187,7 +191,7 @@ class TestWryte(object):
     def test_set_level_from_log(self):
         w = Wryte(name=str(uuid.uuid4()))
         assert w.logger.getEffectiveLevel() == 20
-        w.log('error', 'My Error', set_level='debug')
+        w.log('error', 'My Error', _set_level='debug')
         assert w.logger.getEffectiveLevel() == 10
 
     def test_cli(self):
