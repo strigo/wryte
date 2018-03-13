@@ -210,15 +210,6 @@ class Wryte(object):
         }
 
     @staticmethod
-    def _split_kv(pair):
-        """Return dict for key=value.
-        """
-        # TODO: Document that this is costly.
-        # TODO: Document that it's only split once.
-        kv = pair.split('=', 1)
-        return {kv[0]: kv[1]}
-
-    @staticmethod
     def _get_timestamp():
         # TODO: Allow to use udatetime instead for faster evals
         return datetime.datetime.now().isoformat()
@@ -235,22 +226,19 @@ class Wryte(object):
         doesn't fit the supported formats.
         """
         # TODO: Generate a consolidated dict instead of a list of objects
-        normalized_objects = []
+        consolidated = {}
+
         for obj in objects:
             try:
-                if isinstance(obj, dict):
-                    normalized_objects.append(obj)
-                else:
-                    normalized_objects.append(json.loads(obj))
-            # TODO: Should be a JsonDecoderError
-            except Exception:  # NOQA
-                if '=' in obj:
-                    # TODO: Remove supports for kv pair strings
-                    normalized_objects.append(self._split_kv(obj))
-                else:
-                    normalized_objects.append(
+                consolidated.update(obj)
+            except ValueError:
+                try:
+                    consolidated.update(json.loads(obj))
+                # # TODO: Should be a JsonDecoderError
+                except Exception:  # NOQA
+                    consolidated.update(
                         {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
-        return normalized_objects
+        return consolidated
 
     def _enrich(self, message, level, objects, kwargs=None):
         """Return a metadata enriched object which includes the level,
@@ -276,9 +264,7 @@ class Wryte(object):
         log = self._log.copy()
 
         # Normalizes and adds dictionary-like context.
-        objects = self._normalize_objects(objects)
-        for part in objects:
-            log.update(part)
+        log.update(self._normalize_objects(objects))
 
         # Adds k=v like context
         if kwargs:
@@ -561,9 +547,7 @@ class Wryte(object):
 
         After binding, each log entry will contain the bound fields.
         """
-        objects = self._normalize_objects(objects)
-        for part in objects:
-            self._log.update(part)
+        self._log.update(self._normalize_objects(objects))
 
         if kwargs:
             self._log.update(kwargs)

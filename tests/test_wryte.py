@@ -60,7 +60,6 @@ class TestWryte(object):
             {'k3': 'v3', 'k4': 'v4'},
             {'k7': 'v7', 'k8': {'k9': 'v9'}},
             '{"k5": "v5", "k6": "v6"}',
-            'k10=v10',
             'bla',
             k1='v1', k2='v2',
         )
@@ -89,16 +88,14 @@ class TestWryte(object):
     def test_bind_unbind(self):
         w = Wryte(name=str(uuid.uuid4()))
         assert 'k' not in w._log.keys()
-        w.bind({'k1': 'v1'}, 'k2=v2', '{"k3": "v3"}', k4='v4')
+        w.bind({'k1': 'v1'}, '{"k2": "v2"}', k3='v3')
         assert 'k1' in w._log.keys()
         assert 'k2' in w._log.keys()
         assert 'k3' in w._log.keys()
-        assert 'k4' in w._log.keys()
-        w.unbind('k1', 'k2', 'k3', 'k4')
+        w.unbind('k1', 'k2', 'k3')
         assert 'k1' not in w._log.keys()
         assert 'k2' not in w._log.keys()
         assert 'k3' not in w._log.keys()
-        assert 'k4' not in w._log.keys()
 
     def test_bare_handler(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
