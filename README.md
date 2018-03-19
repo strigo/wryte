@@ -171,9 +171,15 @@ wryter.info('My Message')
 >>> 'My Message'
 ```
 
-### Logging to both the console (journald, stdout, etc..) and an aggregation backend
+### Multiple Handlers
 
-An interesting use-case is when you want to provide easy server-side debugging using human readable messages while also sending events and logs to an aggregation backend such as Elasticsearch, Graylog2 and the likes.
+Wryte's native goal is to allow logging to both the console (journald, stdout, etc..) and an aggregation backend. You're not limited in any way and can ship using as many handlers as you want from a single logger.
+
+#### Adding handlers
+
+The proposed use-case is when you want to provide easy server-side debugging using human readable messages while also sending events and logs to an aggregation backend such as Elasticsearch, Graylog2 and the likes.
+
+Note that Wryte aims to provide an easy way to configure itself via environment variables. See [Using Environment Variables to configure logging handlers](#using-environment-variables-to-configure-logging-handlers).
 
 For example:
 
@@ -208,6 +214,28 @@ wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
 ```
 
 The above will log the message and its associated key value pairs to the console in a human readable format and log machine readable JSON with some additional contextual information to logz.io.
+
+#### Listing and removing handlers
+
+You can list and remove handlers currently attached to a logger:
+
+```python
+import logging
+
+wryter = Wryte()
+handler_name = wryter.add_handler(
+    handler=logging.FileHandler('file.log'),
+    formatter='console')
+
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, who=where)
+# ...log some more
+
+wryter.list_handlers()
+['777b9655-e6f9-4b90-8be9-730edeb3afcf', '_console']
+wryter.remove_handler(handler_name)
+```
+
+By default the `_json` or `_console` handlers are added and they can also be removed.
 
 
 ### Adding Context
@@ -267,13 +295,12 @@ And just like with the logger itself, you can bind nested dicts, kwargs, json st
 
 ### Changing a logger's level
 
-To better control output
-
-You can change a logger's level like so:
+To better control output, you can change a logger's level like so:
 
 ```python
 wryter.set_level(LEVEL_NAME)
 ```
+
 
 #### Dynamically changing log level on errors
 
@@ -349,27 +376,6 @@ with open('file.log') as log_file:
 
 ```
 
-### Listing and removing handlers
-
-You can list and remove handlers currently attached to a logger:
-
-```python
-import logging
-
-wryter = Wryte()
-handler_name = wryter.add_handler(
-    handler=logging.FileHandler('file.log'),
-    formatter='console')
-
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, who=where)
-# ...log some more
-
-wryter.list_handlers()
-['777b9655-e6f9-4b90-8be9-730edeb3afcf', '_console']
-wryter.remove_handler(handler_name)
-```
-
-By default the `_json` or `_console` handlers are added and they can also be removed.
 
 ### Using Formatters
 
