@@ -11,11 +11,11 @@ Wryte
 [![Code Quality](https://landscape.io/github/nir0s/wryte/master/landscape.svg?style=flat)](https://landscape.io/github/nir0s/wryte)
 [![Is Wheel](https://img.shields.io/pypi/wheel/wryte.svg?style=flat)](https://pypi.python.org/pypi/wryte)
 
+Wryte aims to provide a simple API for logging in Python adhering to logging principles fitting today's systems. 
+
 Note that the following documentation relates to the code currently in the master branch. If you want to view docs for previous versions, please choose the relevant release in the "releases" tab.
 
-## Features
-
-Wryte aims to provide a simple API for logging in Python:
+## Notable Features and design principles
 
 * Very easy to get started
 * Sane defaults!
@@ -29,7 +29,7 @@ Wryte aims to provide a simple API for logging in Python:
 * Context binding to prevent repetition
 * Retroactive logging (WIP)
 * Assist in user tracing (via auto-provided context ids)
-* Zero exceptions. There should be zero logging exceptions causing the app to crash but rather Wryte should log errors whenever logging errors occur.
+* Zero logging exceptions. There should be zero logging exceptions causing the app to crash but rather Wryte should log errors whenever logging errors occur.
 
 The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON containing the same information with some additional contextual information over the wire (to a log aggregation backend e.g. ELK/Graylog2)
 
