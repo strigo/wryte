@@ -73,7 +73,13 @@ class ConsoleFormatter(logging.Formatter):
     def __init__(self, pretty=True, color=True, simple=False):
         self.pretty = pretty
         self.color = color
-        self.simple = simple or os.getenv('WRYTE_SIMPLE_CONSOLE')
+
+        _simple = os.getenv('WRYTE_SIMPLE_CONSOLE')
+
+        if _simple is not None:
+            self.simple = True if _simple == "true" else False
+        else:
+            self.simple = simple
 
     @staticmethod
     def _get_level_color(level):

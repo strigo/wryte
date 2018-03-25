@@ -11,7 +11,7 @@ Wryte
 [![Code Quality](https://landscape.io/github/nir0s/wryte/master/landscape.svg?style=flat)](https://landscape.io/github/nir0s/wryte)
 [![Is Wheel](https://img.shields.io/pypi/wheel/wryte.svg?style=flat)](https://pypi.python.org/pypi/wryte)
 
-Wryte aims to provide a simple API for logging in Python adhering to logging principles fitting today's systems. 
+Wryte aims to provide a simple API for logging in Python adhering to logging principles fitting today's systems.
 
 Note that the following documentation relates to the code currently in the master branch. If you want to view docs for previous versions, please choose the relevant release in the "releases" tab.
 
@@ -163,7 +163,7 @@ An event is technically distinguished from a log by having a `{ 'type': 'event' 
 
 ### Wryting a simple log to the console
 
-By default, Wryte will output `TIMESTAMP - LEVEL - LOGGER_NAME - MESSAGE` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either setting the `WRYTE_SIMPLE_CONSOLE` env var or by passing the `simple` flag when instantiating the logger:
+By default, Wryte will output `TIMESTAMP - LEVEL - LOGGER_NAME - MESSAGE` (and the provided key=value pairs) to the console. Many CLI applications log only the message (e.g. `pip`). You can configure Wryte to do so by either passing the `simple` flag or by setting the `WRYTE_SIMPLE_CONSOLE` env var to "true" (any other value will explicitly set `false` even if the flag is passed) when instantiating the logger:
 
 ```python
 wryter = Wryte(simple=True)
