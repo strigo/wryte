@@ -305,19 +305,20 @@ class Wryte(object):
         that it applies to all loggers.
         """
         logger_env = os.getenv('WRYTE_{0}_{1}'.format(
-            self.logger_name.upper(), variable), default)
-        global_env = os.getenv('WRYTE_{0}'.format(variable), default)
-        return logger_env or global_env or None
+            self.logger_name.upper(), variable))
+        global_env = os.getenv('WRYTE_{0}'.format(variable))
+        return logger_env or global_env or default
 
     def _configure_handlers(self, level, jsonify=False):
         """Configure handlers for the logger's instance.
 
         This is done on instantiation.
         """
-        if not jsonify:
-            self.add_default_console_handler(level)
-        else:
-            self.add_default_json_handler(level)
+        if not self._env('CONSOLE_DISABLED'):
+            if self._env('CONSOLE_JSONIFY', jsonify):
+                self.add_default_json_handler(level)
+            else:
+                self.add_default_console_handler(level)
 
         if self._env('HANDLERS_SYSLOG_ENABLED'):
             self.add_syslog_handler()

@@ -485,6 +485,24 @@ For each handler, there are four basic env vars:
 
 On top of those, there are handler specific configuration options:
 
+
+#### Default Handlers
+
+The default handlers are set a bit differently from the rest (note the omission of `HANDLERS`):
+
+* You cannot set the name of the logger.
+
+```
+# If set, will disable the handler.
+export WRYTE_CONSOLE_DISABLED
+
+# If set, will replace the human readable format with a JSON format based on the `json` formatter.
+export WRYTE_CONSOLE_JSONIFY
+
+# As with others, set the level.
+export WRYTE_CONSOLE_LEVEL will set the level, as with other handlers.
+```
+
 #### FILE Handler
 
 Wryte supports both the rotating and watching file handlers (on Windows, FileHandler replaces WatchingFileHandler if not rotating).
