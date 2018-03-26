@@ -333,8 +333,7 @@ class Wryte(object):
         levels = LEVEL_CONVERSION.keys()
 
         if level.lower() not in levels:
-            self.logger.exception('Level must be one of {0}'.format(
-                levels))
+            self.logger.exception('Level must be one of %s', levels)
             return False
         return True
 

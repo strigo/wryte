@@ -18,6 +18,9 @@ which I feel is ready for day to day use.
 * Support passing kwarg type context to all logging methods (i.e. `wryter.error('Message', k=v)`.
 * Add OOB support (with optional dependencies) for Elasticsearch, Logzio, Syslog and File handlers.
 * Expose handler configuration via env vars.
+* Add many tests
+* Add codeclimate checks
+* Try to avoid exceptions in the logger as much as possible. Instead, display errors or exceptions in the console.
 
 See the docs for more info.
 
