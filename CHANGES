@@ -1,3 +1,27 @@
+**0.2.1** (2018.03.26)
+
+This release includes many changes from different unofficial releases and is also the first official release
+which I feel is ready for day to day use.
+
+* Add colored human readable ConsoleFormatter, which is used with the default stream handler.
+* Support pretty-printing key=value pairs.
+* Add mucho documentation.
+* Allow to remove and list handlers.
+* Allow to pass custom formatter.
+* Add a `log` method which receives a logging level, message and objects.
+* Support colored console output.
+* Add an `event` method which returns a `cid` (context id). The cid can also be passed into the event method via the `cid` flag.
+* Add `bind` and `unbind` methods for binding context to a logger.
+* Add `set_level` method for setting the logger's level.
+* Support changing log level via the `_set_level` flag in `critical` and `error` log levels.
+* Support printing a simple message without any formatting (only the `message` field and kv pairs are printed).
+* Support passing kwarg type context to all logging methods (i.e. `wryter.error('Message', k=v)`.
+* Add OOB support (with optional dependencies) for Elasticsearch, Logzio, Syslog and File handlers.
+* Expose handler configuration via env vars.
+
+See the docs for more info.
+
+
 **0.1.0** (2017.12.19)
 
 * Initial implementation
