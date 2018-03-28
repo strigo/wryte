@@ -141,10 +141,10 @@ class ConsoleFormatter(logging.Formatter):
             msg = ' - '.join((timestamp, name, level, message))
 
         if self.pretty:
-            # TODO: Find an alternative to concat here
             # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
-            msg += ''.join("\n  %s=%s" % (k, v)
-                           for (k, v) in record.items())
+            msg += ''.join("\n  %s=%s" % item
+                           for item in record.items())
+
         elif record:
             # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
@@ -202,7 +202,6 @@ class Wryte(object):
         This is evaluated once when the logger's instance is instantiated.
         It is then later copied by each log message.
         """
-        # TODO: Document that these are only generated once.
         return {
             'name': name,
             'hostname': hostname or socket.gethostname(),
@@ -232,7 +231,6 @@ class Wryte(object):
         A `bad_object_uuid` field will be added to the context if an object
         doesn't fit the supported formats.
         """
-        # TODO: Generate a consolidated dict instead of a list of objects
         consolidated = {}
 
         for obj in objects:
@@ -282,11 +280,7 @@ class Wryte(object):
         # within the chain, they will be overriden here.
         log.update({
             'message': message,
-            # TODO: declare `upper` method when instantiating class or
-            # simply remove it altogether.
             'level': level.upper(),
-            # TODO: Maybe we don't need a method here and can directly
-            # call the datetime method? Perf-wise, that is..
             'timestamp': self._get_timestamp()
         })
 
