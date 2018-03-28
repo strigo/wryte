@@ -112,24 +112,24 @@ class ConsoleFormatter(logging.Formatter):
         Performance is also reduced by the amount of fields you have in your
         context (context i.e. k=v).
         """
-        # TODO: No need to copy here
         record = record.msg
 
-        # TODO: pop instead so that we don't need to pop after
-        name = record['name']
-        timestamp = record['timestamp']
+        name = record.pop('name')
+        timestamp = record.pop('timestamp')
         level = record['level'] if record['type'] == 'log' else 'EVENT'
-        message = record['message']
+        message = record.pop('message')
 
         # We no longer need them as part of the dict.
-        p = ('name', 'timestamp', 'level', 'message',
-             'type', 'hostname', 'pid')
+        # # TODO (perf): We can directly delete the keys without looping here,
+        # which would skim off some microsecords per message.
+        p = ('level', 'type', 'hostname', 'pid')
         for key in p:
-            # TODO: del instead of popping
-            record.pop(key)
+            del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
-            # TODO: Use string formatting instead
+            # TODO: Use string formatting instead. This is currently less
+            # interesting as no one should use coloring when performance
+            # matters anyway.
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
