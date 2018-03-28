@@ -634,6 +634,15 @@ class WryteError(Exception):
     pass
 
 
+def _split_kv(pair):
+    """Return dict for key=value.
+    """
+    # TODO: Document that this is costly.
+    # TODO: Document that it's only split once.
+    kv = pair.split('=', 1)
+    return {kv[0]: kv[1]}
+
+
 if CLI_ENABLED:
     CLICK_CONTEXT_SETTINGS = dict(
         help_option_names=['-h', '--help'],
@@ -679,7 +688,18 @@ if CLI_ENABLED:
             jsonify=jsonify,
             color=not no_color,
             simple=simple)
-        getattr(wryter, level.lower())(message, *objects)
+
+        objcts = []
+
+        # Allows to pass `k=v` pairs.
+        for obj in objects:
+            try:
+                json.loads(obj)
+            except Exception:
+                if '=' in obj:
+                    objcts.append(_split_kv(obj))
+
+        getattr(wryter, level.lower())(message, *objcts)
 else:
     def main():
         sys.exit(
