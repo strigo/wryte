@@ -598,7 +598,7 @@ class Wryte(object):
         """
         obj = self._enrich(message, level, objects, kwargs)
         if kwargs.get('_set_level'):
-            self.set_level(kwargs.get('_set_level'))
+            self.set_level(kwargs['_set_level'])
 
         if not self._assert_level(level):
             return
@@ -625,19 +625,13 @@ class Wryte(object):
 
     def error(self, message, *objects, **kwargs):
         if kwargs.get('_set_level'):
-            # TODO: Use subscriptiong instead
-            self.set_level(kwargs.get('_set_level'))
-            # TODO: Don't pop, this could be useful in the log
-            kwargs.pop('_set_level')
+            self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
         if kwargs.get('_set_level'):
-            # TODO: Use subscriptiong instead
-            self.set_level(kwargs.get('_set_level'))
-            # TODO: Don't pop, this could be useful in the log
-            kwargs.pop('_set_level')
+            self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
 
