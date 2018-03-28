@@ -137,17 +137,14 @@ class ConsoleFormatter(logging.Formatter):
         if self.simple:
             msg = message
         else:
-            # TODO: Use ' - '.join((timestamp, name, level, message))
-            msg = '{0} - {1} - {2} - {3}'.format(
-                timestamp, name, level, message)
+            # Over formatting, this shaves off around 0.5% of the time.
+            msg = ' - '.join((timestamp, name, level, message))
 
         if self.pretty:
             # TODO: Find an alternative to concat here
             # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
-            # msg += ''.join("\n  %s=%s" % (k, v)
-            #                for (k, v) in record.items())
-            for key, value in record.items():
-                msg += '\n  {0}={1}'.format(key, value)
+            msg += ''.join("\n  %s=%s" % (k, v)
+                           for (k, v) in record.items())
         elif record:
             # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
@@ -216,12 +213,12 @@ class Wryte(object):
     @staticmethod
     def _get_timestamp():
         # `now()` needs to compensate for timezones, and so it takes much
-        # more time to evaluate (I tested around 50ms improvement on 10k msgs
+        # more time to evaluate (I tested ~50ms improvement on 10k msgs
         # averaging over 30 runs). That is by no means a reason to use utcnow,
         # but since we should standardize the timestamp, it makes sense to do
         # so anyway.
         # Additionally, using udatetime seemed to actually reduce performance!
-        # It added around 17ms for that same amount of msgs over utcnow.
+        # It added ~17ms for that same amount of msgs over utcnow.
         return datetime.utcnow().isoformat()
 
     def _normalize_objects(self, objects):
