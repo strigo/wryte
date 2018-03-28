@@ -18,7 +18,7 @@ import uuid
 import json
 import socket
 import logging
-import datetime
+from datetime import datetime
 
 try:
     import colorama
@@ -215,18 +215,14 @@ class Wryte(object):
 
     @staticmethod
     def _get_timestamp():
-        # TODO: Allow to use udatetime instead for faster evals
-        # now = datetime.datetime.now()
-        # return '{}-{:02d}-{:02d}T{:02d}:{}:{}.{:03d}'.format(
-        #     now.year, now.month, now.day,
-        #     now.hour, now.minute, now.second, now.microsecond
-        # )
-        # return '%d-%02d-%02dT%02d:%02d:%02d.%d' % (
-        #     now.year, now.month, now.day,
-        #     now.hour, now.minute, now.second, now.microsecond
-        # )
-
-        return datetime.datetime.now().isoformat()
+        # `now()` needs to compensate for timezones, and so it takes much
+        # more time to evaluate (I tested around 50ms improvement on 10k msgs
+        # averaging over 30 runs). That is by no means a reason to use utcnow,
+        # but since we should standardize the timestamp, it makes sense to do
+        # so anyway.
+        # Additionally, using udatetime seemed to actually reduce performance!
+        # It added around 17ms for that same amount of msgs over utcnow.
+        return datetime.utcnow().isoformat()
 
     def _normalize_objects(self, objects):
         """Return a normalized dictionary for a list of key value like objects.
