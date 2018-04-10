@@ -21,6 +21,13 @@ import logging
 from datetime import datetime
 
 try:
+    # Python 2
+    import urllib2 as urllib
+except ImportError:
+    # Python 3
+    import urllib.request as urllib
+
+try:
     import colorama
     from colorama import Fore, Style
     COLOR_ENABLED = True
@@ -156,7 +163,8 @@ class Wryte(object):
                  bare=False,
                  jsonify=False,
                  color=True,
-                 simple=False):
+                 simple=False,
+                 enable_ec2=False):
         """Instantiate a logger instance.
 
         Either a JSON or a Console handler will be added to the logger
@@ -177,8 +185,8 @@ class Wryte(object):
         self.color = color
         self.simple = simple
 
-        self._log = self._get_base(self.logger_name, hostname)
         self.logger = self._logger(self.logger_name)
+        self._log = self._get_base(self.logger_name, hostname, enable_ec2)
 
         if not bare:
             self._configure_handlers(level, jsonify)
@@ -190,19 +198,43 @@ class Wryte(object):
         logger = logging.getLogger(name)
         return logger
 
-    @staticmethod
-    def _get_base(name, hostname):
+    def _get_base(self, name, hostname, enable_ec2=False):
         """Generate base fields for each log message.
 
         This is evaluated once when the logger's instance is instantiated.
         It is then later copied by each log message.
         """
-        return {
+        def fetch_ec2(attribute):
+            try:
+                return urllib.urlopen(
+                    'http://169.254.169.254/latest/meta-data/{0}'.format(
+                        attribute)).read().decode()
+            # Yuch. But shouldn't take a risk that any exception will raise
+            except Exception:
+                return None
+
+        # TODO: Document that these are only generated once.
+        base = {
             'name': name,
             'hostname': hostname or socket.gethostname(),
             'pid': os.getpid(),
-            'type': 'log'
+            'type': 'log',
         }
+
+        if self._env('EC2_ENABLED') or enable_ec2:
+            # To test that ec2 data is actually attainable
+            instance_id = fetch_ec2('instance-id')
+            if instance_id:
+                base['ec2_instance_id'] = instance_id
+                base['ec2_instance_type'] = fetch_ec2('instance-type')
+                base['ec2_region'] = fetch_ec2('placement/availability-zone')
+                base['ec2_ipv4'] = fetch_ec2('local-ipv4')
+            else:
+                self.logger.error(
+                    'WRYTE EC2 env var set but EC2 metadata endpoint is '
+                    'unavailable or the data could not be retrieved.')
+
+        return base
 
     @staticmethod
     def _get_timestamp():
