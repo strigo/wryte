@@ -114,16 +114,16 @@ class ConsoleFormatter(logging.Formatter):
         """
         record = record.msg
 
-        name = record.pop('name')
-        timestamp = record.pop('timestamp')
+        # Not popping and deleting later as pop is marginally less performant
+        name = record['name']
+        timestamp = record['timestamp']
         level = record['level'] if record['type'] == 'log' else 'EVENT'
-        message = record.pop('message')
+        message = record['message']
 
         # We no longer need them as part of the dict.
-        # # TODO (perf): We can directly delete the keys without looping here,
-        # which would skim off some microsecords per message.
-        p = ('level', 'type', 'hostname', 'pid')
-        for key in p:
+        dk = ('level', 'type', 'hostname', 'pid',
+              'name', 'message', 'timestamp')
+        for key in dk:
             del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
@@ -137,14 +137,12 @@ class ConsoleFormatter(logging.Formatter):
         if self.simple:
             msg = message
         else:
-            # Over formatting, this shaves off around 0.5% of the time.
             msg = ' - '.join((timestamp, name, level, message))
 
         if self.pretty:
             # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
             msg += ''.join("\n  %s=%s" % item
                            for item in record.items())
-
         elif record:
             # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
@@ -212,12 +210,11 @@ class Wryte(object):
     @staticmethod
     def _get_timestamp():
         # `now()` needs to compensate for timezones, and so it takes much
-        # more time to evaluate (I tested ~50ms improvement on 10k msgs
-        # averaging over 30 runs). That is by no means a reason to use utcnow,
+        # more time to evaluate. `udatetime` doesn't help here and actually
+        # takes more time both on Python2 and Python3.
+        # This is by no means a reason to use utcnow,
         # but since we should standardize the timestamp, it makes sense to do
         # so anyway.
-        # Additionally, using udatetime seemed to actually reduce performance!
-        # It added ~17ms for that same amount of msgs over utcnow.
         return datetime.utcnow().isoformat()
 
     def _normalize_objects(self, objects):
@@ -234,12 +231,15 @@ class Wryte(object):
         consolidated = {}
 
         for obj in objects:
-            try:
+            # We check here instead of try-excepting since it's not obvious
+            # what the distribution between dict and json will be and if
+            # costs much less when the distribution is flat.
+            if isinstance(obj, dict):
                 consolidated.update(obj)
-            except ValueError:
+            else:
                 try:
                     consolidated.update(json.loads(obj))
-                # # TODO: Should be a JsonDecoderError
+                # TODO: Should be a JsonDecoderError
                 except Exception:  # NOQA
                     consolidated.update(
                         {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
@@ -268,6 +268,9 @@ class Wryte(object):
         """
         log = self._log.copy()
 
+        # `update()` is more performant for an unknown number
+        # of keys. The change is non-linear as the amount of keys grows.
+
         # Normalizes and adds dictionary-like context.
         log.update(self._normalize_objects(objects))
 
@@ -278,11 +281,10 @@ class Wryte(object):
         # Appends default fields.
         # This of course means that if any of these are provided
         # within the chain, they will be overriden here.
-        log.update({
-            'message': message,
-            'level': level.upper(),
-            'timestamp': self._get_timestamp()
-        })
+        # This is ~2.5 faster than log.update()
+        log['message'] = message
+        log['level'] = level.upper()
+        log['timestamp'] = self._get_timestamp()
 
         return log
 
@@ -557,8 +559,11 @@ class Wryte(object):
     def unbind(self, *keys):
         """Unbind previously bound context.
         """
-        # TODO: Support unbinding nested field in context
         for key in keys:
+            # Perf-wise, we should try-except here since we expect
+            # that 99% of the time the keys will exist so it will be faster.
+            # Thing is, that unbinding shouldn't happen thousands of
+            # times a second, so we'll go for readability here.
             self._log.pop(key)
 
     def event(self, message, *objects, **kwargs):
@@ -591,7 +596,7 @@ class Wryte(object):
         can practically pass weird logging levels.
         """
         obj = self._enrich(message, level, objects, kwargs)
-        if kwargs.get('_set_level'):
+        if '_set_level' in kwargs:
             self.set_level(kwargs['_set_level'])
 
         if not self._assert_level(level):
@@ -618,13 +623,13 @@ class Wryte(object):
         self.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
-        if kwargs.get('_set_level'):
+        if '_set_level' in kwargs:
             self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
-        if kwargs.get('_set_level'):
+        if '_set_level' in kwargs:
             self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
@@ -695,6 +700,7 @@ if CLI_ENABLED:
         for obj in objects:
             try:
                 json.loads(obj)
+                objcts.append(obj)
             except Exception:
                 if '=' in obj:
                     objcts.append(_split_kv(obj))

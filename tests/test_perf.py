@@ -22,7 +22,7 @@ class TestPerf(object):
 
             timing.append((datetime.now() - now).total_seconds() * 1000.0)
 
-        assert numpy.average(timing[1:]) < 0.4
+        assert numpy.average(timing[1:]) < 2
 
     def test_simple_context(self):
         w = Wryte(color=False)
@@ -37,4 +37,4 @@ class TestPerf(object):
 
             timing.append((datetime.now() - now).total_seconds() * 1000.0)
 
-        assert numpy.average(timing[1:]) < 0.4
+        assert numpy.average(timing[1:]) < 2
