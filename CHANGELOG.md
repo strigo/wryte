@@ -1,4 +1,15 @@
-**0.2.1** (2018.03.26)
+## 0.3.0 (UNRELEASED)
+
+ENHANCEMENTS:
+* Add support for ec2 specific contextual fields [[#27](#27)]
+* Replace `datetime.now()` with `datetime.utcnow()` [[33e9c11](33e9c11)]
+* Optimize performance (benchmarks will come soon) [[#26](#26)]
+
+BUG FIXES:
+* Reinstate k=v pair string handling only for the CLI [[728a274](728a274)]
+
+
+## 0.2.1 (2018.03.26)
 
 This release includes many changes from different unofficial releases and is also the first official release
 which I feel is ready for day to day use.
@@ -25,7 +36,7 @@ which I feel is ready for day to day use.
 See the docs for more info.
 
 
-**0.1.0** (2017.12.19)
+## 0.1.0 (2017.12.19)
 
 * Initial implementation
 * Make basic logger log a standard log message.
