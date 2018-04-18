@@ -127,9 +127,6 @@ class ConsoleFormatter(logging.Formatter):
             del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
-            # TODO: Use string formatting instead. This is currently less
-            # interesting as no one should use coloring when performance
-            # matters anyway.
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
@@ -231,7 +228,7 @@ class Wryte(object):
         consolidated = {}
 
         for obj in objects:
-            # We check here instead of try-excepting since it's not obvious
+            # We if here instead of try-excepting since it's not obvious
             # what the distribution between dict and json will be and if
             # costs much less when the distribution is flat.
             if isinstance(obj, dict):
@@ -268,9 +265,6 @@ class Wryte(object):
         """
         log = self._log.copy()
 
-        # `update()` is more performant for an unknown number
-        # of keys. The change is non-linear as the amount of keys grows.
-
         # Normalizes and adds dictionary-like context.
         log.update(self._normalize_objects(objects))
 
@@ -279,9 +273,6 @@ class Wryte(object):
             log.update(kwargs)
 
         # Appends default fields.
-        # This of course means that if any of these are provided
-        # within the chain, they will be overriden here.
-        # This is ~2.5 faster than log.update()
         log['message'] = message
         log['level'] = level.upper()
         log['timestamp'] = self._get_timestamp()
