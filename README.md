@@ -292,6 +292,17 @@ wryter.unbind('user_id')
 ```
 
 And just like with the logger itself, you can bind nested dicts, kwargs, json strings and kv pair strings.
+#### Badly formatted context
+
+When providing a badly formatted context (e.g. `wryte.info('Message', ['bad_context'])`), a field containing the provided context will be added to the log like so:
+
+```bash
+2018-04-18T08:06:14.739438 - Wryte - INFO - Message
+  _bad_object_3dff246b-f8fd-44af-bd29-29fde77a11fc=['bad_context']
+  bound2=value2
+
+```
+
 
 ### Changing a logger's level
 

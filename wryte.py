@@ -18,7 +18,7 @@ import uuid
 import json
 import socket
 import logging
-import datetime
+from datetime import datetime
 
 try:
     import colorama
@@ -112,24 +112,21 @@ class ConsoleFormatter(logging.Formatter):
         Performance is also reduced by the amount of fields you have in your
         context (context i.e. k=v).
         """
-        # TODO: No need to copy here
-        record = record.msg.copy()
+        record = record.msg
 
-        # TODO: pop instead so that we don't need to pop after
+        # Not popping and deleting later as pop is marginally less performant
         name = record['name']
         timestamp = record['timestamp']
         level = record['level'] if record['type'] == 'log' else 'EVENT'
         message = record['message']
 
         # We no longer need them as part of the dict.
-        p = ('name', 'timestamp', 'level', 'message',
-             'type', 'hostname', 'pid')
-        for key in p:
-            # TODO: del instead of popping
-            record.pop(key)
+        dk = ('level', 'type', 'hostname', 'pid',
+              'name', 'message', 'timestamp')
+        for key in dk:
+            del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
-            # TODO: Use string formatting instead
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
@@ -137,16 +134,12 @@ class ConsoleFormatter(logging.Formatter):
         if self.simple:
             msg = message
         else:
-            # TODO: Use ' - '.join((timestamp, name, level, message))
-            msg = '{0} - {1} - {2} - {3}'.format(
-                timestamp, name, level, message)
+            msg = ' - '.join((timestamp, name, level, message))
 
         if self.pretty:
-            # TODO: Find an alternative to concat here
-            # msg += ''.join("\n  %s=%s" % (k, v)
-            #                for (k, v) in record.items())
-            for key, value in record.items():
-                msg += '\n  {0}={1}'.format(key, value)
+            # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
+            msg += ''.join("\n  %s=%s" % item
+                           for item in record.items())
         elif record:
             # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
@@ -204,7 +197,6 @@ class Wryte(object):
         This is evaluated once when the logger's instance is instantiated.
         It is then later copied by each log message.
         """
-        # TODO: Document that these are only generated once.
         return {
             'name': name,
             'hostname': hostname or socket.gethostname(),
@@ -214,8 +206,13 @@ class Wryte(object):
 
     @staticmethod
     def _get_timestamp():
-        # TODO: Allow to use udatetime instead for faster evals
-        return datetime.datetime.now().isoformat()
+        # `now()` needs to compensate for timezones, and so it takes much
+        # more time to evaluate. `udatetime` doesn't help here and actually
+        # takes more time both on Python2 and Python3.
+        # This is by no means a reason to use utcnow,
+        # but since we should standardize the timestamp, it makes sense to do
+        # so anyway.
+        return datetime.utcnow().isoformat()
 
     def _normalize_objects(self, objects):
         """Return a normalized dictionary for a list of key value like objects.
@@ -228,19 +225,21 @@ class Wryte(object):
         A `bad_object_uuid` field will be added to the context if an object
         doesn't fit the supported formats.
         """
-        # TODO: Generate a consolidated dict instead of a list of objects
         consolidated = {}
 
         for obj in objects:
-            try:
+            # We if here instead of try-excepting since it's not obvious
+            # what the distribution between dict and json will be and if
+            # costs much less when the distribution is flat.
+            if isinstance(obj, dict):
                 consolidated.update(obj)
-            except ValueError:
+            else:
                 try:
                     consolidated.update(json.loads(obj))
-                # # TODO: Should be a JsonDecoderError
+                # TODO: Should be a JsonDecoderError
                 except Exception:  # NOQA
-                    consolidated.update(
-                        {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
+                    consolidated['_bad_object_{0}'.format(
+                        str(uuid.uuid4()))] = obj
         return consolidated
 
     def _enrich(self, message, level, objects, kwargs=None):
@@ -274,17 +273,9 @@ class Wryte(object):
             log.update(kwargs)
 
         # Appends default fields.
-        # This of course means that if any of these are provided
-        # within the chain, they will be overriden here.
-        log.update({
-            'message': message,
-            # TODO: declare `upper` method when instantiating class or
-            # simply remove it altogether.
-            'level': level.upper(),
-            # TODO: Maybe we don't need a method here and can directly
-            # call the datetime method? Perf-wise, that is..
-            'timestamp': self._get_timestamp()
-        })
+        log['message'] = message
+        log['level'] = level.upper()
+        log['timestamp'] = self._get_timestamp()
 
         return log
 
@@ -387,6 +378,7 @@ class Wryte(object):
         for handler in self.logger.handlers:
             if handler.name == name:
                 self.logger.removeHandler(handler)
+                # TODO: Break here. WTF?
 
     def add_default_json_handler(self, level='debug'):
         return self.add_handler(
@@ -558,8 +550,11 @@ class Wryte(object):
     def unbind(self, *keys):
         """Unbind previously bound context.
         """
-        # TODO: Support unbinding nested field in context
         for key in keys:
+            # Perf-wise, we should try-except here since we expect
+            # that 99% of the time the keys will exist so it will be faster.
+            # Thing is, that unbinding shouldn't happen thousands of
+            # times a second, so we'll go for readability here.
             self._log.pop(key)
 
     def event(self, message, *objects, **kwargs):
@@ -592,8 +587,8 @@ class Wryte(object):
         can practically pass weird logging levels.
         """
         obj = self._enrich(message, level, objects, kwargs)
-        if kwargs.get('_set_level'):
-            self.set_level(kwargs.get('_set_level'))
+        if '_set_level' in kwargs:
+            self.set_level(kwargs['_set_level'])
 
         if not self._assert_level(level):
             return
@@ -619,26 +614,29 @@ class Wryte(object):
         self.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
-        if kwargs.get('_set_level'):
-            # TODO: Use subscriptiong instead
-            self.set_level(kwargs.get('_set_level'))
-            # TODO: Don't pop, this could be useful in the log
-            kwargs.pop('_set_level')
+        if '_set_level' in kwargs:
+            self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'error', objects, kwargs)
         self.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
-        if kwargs.get('_set_level'):
-            # TODO: Use subscriptiong instead
-            self.set_level(kwargs.get('_set_level'))
-            # TODO: Don't pop, this could be useful in the log
-            kwargs.pop('_set_level')
+        if '_set_level' in kwargs:
+            self.set_level(kwargs['_set_level'])
         obj = self._enrich(message, 'critical', objects, kwargs)
         self.logger.critical(obj)
 
 
 class WryteError(Exception):
     pass
+
+
+def _split_kv(pair):
+    """Return dict for key=value.
+    """
+    # TODO: Document that this is costly.
+    # TODO: Document that it's only split once.
+    kv = pair.split('=', 1)
+    return {kv[0]: kv[1]}
 
 
 if CLI_ENABLED:
@@ -686,7 +684,19 @@ if CLI_ENABLED:
             jsonify=jsonify,
             color=not no_color,
             simple=simple)
-        getattr(wryter, level.lower())(message, *objects)
+
+        objcts = []
+
+        # Allows to pass `k=v` pairs.
+        for obj in objects:
+            try:
+                json.loads(obj)
+                objcts.append(obj)
+            except Exception:
+                if '=' in obj:
+                    objcts.append(_split_kv(obj))
+
+        getattr(wryter, level.lower())(message, *objcts)
 else:
     def main():
         sys.exit(
