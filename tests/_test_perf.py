@@ -8,7 +8,6 @@ from wryte import Wryte
 
 
 class TestPerf(object):
-    # 1 message takes ~0.067ms
     def _test_simple_message(self):
         w = Wryte(color=False, simple=True)
 
