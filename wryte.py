@@ -241,8 +241,8 @@ class Wryte(object):
                     consolidated.update(json.loads(obj))
                 # TODO: Should be a JsonDecoderError
                 except Exception:  # NOQA
-                    consolidated.update(
-                        {'_bad_object_{0}'.format(str(uuid.uuid4())): obj})
+                    consolidated['_bad_object_{0}'.format(
+                        str(uuid.uuid4()))] = obj
         return consolidated
 
     def _enrich(self, message, level, objects, kwargs=None):
