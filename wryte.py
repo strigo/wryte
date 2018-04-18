@@ -161,7 +161,8 @@ class Wryte:
                  jsonify=False,
                  color=True,
                  simple=False,
-                 enable_ec2=False):
+                 enable_ec2=False,
+                 include_src=False):
         """Instantiate a logger instance.
 
         Either a JSON or a Console handler will be added to the logger
@@ -181,6 +182,7 @@ class Wryte:
         self.pretty = pretty
         self.color = color
         self.simple = simple
+        self.include_src = include_src
 
         self.logger = self._logger(self.logger_name)
         self._log = self._get_base(self.logger_name, hostname, enable_ec2)
@@ -301,6 +303,13 @@ class Wryte:
         log['message'] = message
         log['level'] = level.upper()
         log['timestamp'] = self._get_timestamp()
+        if self._env('INCLUDE_SRC') or self.include_src:
+            src = self.logger.findCaller()
+            log['src'] = {
+                'file': src[0],
+                'line': src[1],
+                'method': src[2],
+            }
 
         return log
 
