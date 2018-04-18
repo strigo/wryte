@@ -24,9 +24,10 @@ Note that the following documentation relates to the code currently in the maste
 * Handler agnosticism
 * Differentiate user events and system logs
 * Auto-enrich with useful data (hostname, pid, etc..)
+* Enrich with AWS EC2 metadata (instance-id, instance-type, region and ipv4) if available
 * Easily provide contexual data
-* Dynamic severity levels
 * Context binding to prevent repetition
+* Dynamic severity levels
 * Retroactive logging (WIP)
 * Assist in user tracing (via auto-provided context ids)
 * Zero logging exceptions. There should be zero logging exceptions causing the app to crash but rather Wryte should log errors whenever logging errors occur.
@@ -260,7 +261,7 @@ wryter.critical('Logging nested dicts', {'key': 'value', 'nested': { 'key1': 'va
 
 ```
 
-#### Reserved Fields
+#### Reserved Contextual Fields
 
 The following are fields reserved to Wryte:
 
@@ -272,9 +273,18 @@ The following are fields reserved to Wryte:
 * `level`
 * `type`
 * `name`
+* `ec2_instance_id` (optional)
+* `ec2_instance_type` (optional)
+* `ec2_region` (optional)
+* `ec2_ipv4` (optional)
 
 Note that even if the fields are provided in a log message, they are bound to be overriden by Wryte.
 
+#### Enriching with AWS EC2 instance context
+
+The optional fields mentioned above are added to the context if the `WRYTE_EC2_ENABLED` env var is set.
+
+Note that if the data is unattainable for any reason, Wryte will spit out an error message stating so when the logger is instantiated.
 
 #### Binding contextual information to a logger
 
