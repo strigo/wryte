@@ -13,6 +13,8 @@ Wryte
 
 Wryte aims to provide a simple API for logging in Python adhering to logging principles fitting today's systems.
 
+Wryte assumes that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON containing the same information with some additional contextual information over the wire (to a log aggregation backend e.g. ELK/Graylog2)
+
 Note that the following documentation relates to the code currently in the master branch. If you want to view docs for previous versions, please choose the relevant release in the "releases" tab.
 
 ## Notable Features and design principles
@@ -31,8 +33,6 @@ Note that the following documentation relates to the code currently in the maste
 * Retroactive logging (WIP)
 * Assist in user tracing (via auto-provided context ids)
 * Zero logging exceptions. There should be zero logging exceptions causing the app to crash but rather Wryte should log errors whenever logging errors occur.
-
-The main premise is that a standard CLI application logs to the console, while a server side app will probably want to log some human readable messages to syslog/console while logging JSON containing the same information with some additional contextual information over the wire (to a log aggregation backend e.g. ELK/Graylog2)
 
 
 
@@ -55,13 +55,24 @@ pip install https://github.com/nir0s/wryte/archive/master.tar.gz
 
 ### Getting Started
 
+This will log human readable messages to stdout and JSON to Elasticsearch:
+
+```bash
+$ pip install wryte[elasticsearch]
+...
+
+$ export WRYTE_HANDLERS_TYPE_ENABLED=true
+$ export WRYTE_HANDLERS_ELASTICSEARCH_HOST="http://es.dc1.service.consul:9200,http://es.dc2.service.consul:9200"
+```
+
 ```python
 from wryte import Wryte
 
 wryter = Wryte(name='app')
-wryter.info('My Message')
+wryter.info('My Message', key='value')
 
 # 2017-12-22T17:02:59.550920 - app - INFO - my message
+#  key=value
 ...
 
 ```
@@ -95,20 +106,20 @@ $ wryte info my-message key1=value1 key2=value2
   key1=value1
   key2=value2
 
-$ wryte info my-message key1=value1 key2=value2 --ugly
-2018-02-18T08:53:45.126228 - Wryte - INFO - my-message
+$ wryte error my-message key1=value1 '{"key2": {"key3": "value2"}}' --ugly
+2018-02-18T08:53:45.126228 - Wryte - ERROR - my-message
 {
     "key2": "value2",
     "key1": "value1"
 }
 
-$ wryte info my-message key1=value1 key2=value2 -j
+$ wryte warn my-message key1=value1 key2=value2 -j
 {
     "key1": "value1",
     "name": "Wryte",
     "pid": 18613,
     "type": "log",
-    "level": "INFO",
+    "level": "WARNING",
     "timestamp": "2018-02-18T08:53:06.222926",
     "message": "my-message",
     "hostname": "nir0s-x1",
@@ -123,14 +134,15 @@ $ wryte info my-message key1=value1 key2=value2 -j
 from wryte import Wryte
 
 wryter = Wryte(
-  name=None,  # The name of the logger (appended to each log message)
-  hostname=None,  # The hostname
-  level='info',  # severity level
-  pretty=None,  # (Console only) Whether to pretty-print JSON
+  name=None,  # The name of the logger.
+  hostname=None,  # The name of the host.
+  level='info',  # Minimum severity level to log.
+  pretty=None,  # (Console only) Whether to pretty-print JSON or not.
   bare=False,  # Omit any default handlers. You will have to add them yourself after.
   jsonify=False,  # (Console only) Output json to the console instead of a human readable message.
   color=True,  # (Console only) Colorize Console output.
-  simple=False  # (Console only) Only print the message and key=value pairs.
+  simple=False,  # (Console only) Only print the message and key=value pairs.
+  enable_ec2=False  # Enrich with ec2 instance specific context.
 )
 ```
 
@@ -174,7 +186,7 @@ wryter.info('My Message')
 
 ### Multiple Handlers
 
-Wryte's native goal is to allow logging to both the console (journald, stdout, etc..) and an aggregation backend. You're not limited in any way and can ship using as many handlers as you want from a single logger.
+Wryte's goal is to allow logging to both the console (journald, stdout, etc..) and an aggregation backend. You're not limited in any way and can ship using as many handlers as you want from a single logger.
 
 #### Adding handlers
 
@@ -192,7 +204,7 @@ wryter = Wryte(name='wryte', level='debug')
 # `formatter` default is `json`. `level` default is `info`.
 wryter.add_handler(handler=LogzioHandler('LOGZIO_TOKEN'), name='logzio', formatter='json', level='info')
 
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'key3=value3')
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, key3=value3)
 # 2017-12-22T17:02:59.550920 - app - INFO - my message
 #  key1=value1,
 #  key2=value2,
@@ -236,7 +248,7 @@ wryter.list_handlers()
 wryter.remove_handler(handler_name)
 ```
 
-By default the `_json` or `_console` handlers are added and they can also be removed.
+By default either the `_json` or `_console` handlers are added and they can also be removed.
 
 
 ### Adding Context
@@ -244,12 +256,12 @@ By default the `_json` or `_console` handlers are added and they can also be rem
 On top of logging simple messages, Wryte assumes that you have context you would like to add to your logs.
 Instead of making you work to consolidate your data, Wryte allows you to pass multiple dictionaries and key value pair strings and consolidate them to a single dictionary.
 
-You can pass any number of single level or nested dictionaries and `key=value` strings or kwargs and even JSON strings, and those will be parsed and added to the log message.
+You can pass any number of single level or nested dictionaries, kwargs and JSON strings, and those will be parsed and added to the log message.
 
 For example:
 
 ```python
-wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, 'who=where')
+wryter.info('My Message', {'key1': 'value2', 'key2': 'value2'}, who='where')
 # 2017-12-22T17:02:59.550920 - app - INFO - my message
 #  key1=value1,
 #  key2=value2,
@@ -282,7 +294,7 @@ Note that even if the fields are provided in a log message, they are bound to be
 
 #### Enriching with AWS EC2 instance context
 
-The optional fields mentioned above are added to the context if the `WRYTE_EC2_ENABLED` env var is set.
+The aforementioned optional fields are added to the context if the `WRYTE_EC2_ENABLED` env var is set. The information is polled for when the logger is instantiated.
 
 Note that if the data is unattainable for any reason, Wryte will spit out an error message stating so when the logger is instantiated.
 
@@ -301,7 +313,7 @@ wryter.bind({'user_id': framework.user, ...}, key=value)
 wryter.unbind('user_id')
 ```
 
-And just like with the logger itself, you can bind nested dicts, kwargs, json strings and kv pair strings.
+And just like with the logger itself, you can bind nested dicts, kwargs and JSON strings.
 #### Badly formatted context
 
 When providing a badly formatted context (e.g. `wryte.info('Message', ['bad_context'])`), a field containing the provided context will be added to the log like so:
@@ -404,7 +416,7 @@ Currently, Wryte allows to choose between just two formatters: `json` and `conso
 
 The console output, on the other hand, might require formatting. Wryte's priority is to simplify and standardize the way we print and ship log messages, not to allow you to just view console logs anyway you want. I might add something in the future to allow to format console messages.
 
-To make sure you can still print out messages formatted the way you want, without utilizing `Wryte`, you can simply pass your formatter instance when adding a handler, e.g:
+I don't wanna cut off your arm, so to make sure you can still print out messages formatted the way you want, without utilizing `Wryte`, you can simply pass your formatter instance when adding a handler, e.g:
 
 ```python
 import logging
@@ -556,7 +568,7 @@ export WRYTE_HANDLERS_SYSLOG_SOCKET_TYPE='udp'  # udp/tcp
 export WRYTE_HANDLERS_SYSLOG_FACILITY='LOG_USER'
 ```
 
-#### ELASTICSERACH Handler
+#### ELASTICSEARCH Handler
 
 While it may be useful to send your messages through logstash, you may also log to Elasticsearch directly.
 
