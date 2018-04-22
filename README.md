@@ -62,7 +62,7 @@ $ pip install wryte[elasticsearch]
 ...
 
 $ export WRYTE_HANDLERS_TYPE_ENABLED=true
-$ export WRYTE_HANDLERS_ELASTICSEARCH_HOST="http://es.dc1.service.consul:9200,http://es.dc2.service.consul:9200"
+$ export WRYTE_HANDLERS_ELASTICSEARCH_HOST="https://es.dc1.service.consul:9200"
 ```
 
 ```python
