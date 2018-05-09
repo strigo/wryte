@@ -1,12 +1,12 @@
 ## 0.3.0 (UNRELEASED)
 
 ENHANCEMENTS:
-* Add support for ec2 specific contextual fields [[#27](#27)]
-* Replace `datetime.now()` with `datetime.utcnow()` [[33e9c11](33e9c11)]
-* Optimize performance (benchmarks will come soon) [[#26](#26)]
+* Add support for ec2 specific contextual fields [[#27](https://github.com/nir0s/wryte/issues/27)]
+* Replace `datetime.now()` with `datetime.utcnow()` [[33e9c11](https://github.com/nir0s/wryte/commit/33e9c118a345d8edcf099dd330badf5912cbf21a)]
+* Optimize performance (benchmarks will come soon) [[#26](https://github.com/nir0s/wryte/issues/26)]
 
 BUG FIXES:
-* Reinstate k=v pair string handling only for the CLI [[728a274](728a274)]
+* Reinstate k=v pair string handling only for the CLI [[728a274](https://github.com/nir0s/wryte/commit/728a274326d290791ded54e41714065f3e7f9902)]
 
 
 ## 0.2.1 (2018.03.26)
