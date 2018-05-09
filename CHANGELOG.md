@@ -1,4 +1,4 @@
-## 0.3.0 (UNRELEASED)
+## 0.3.0 (2018.05.09)
 
 ENHANCEMENTS:
 * Add support for ec2 specific contextual fields [[#27](https://github.com/nir0s/wryte/issues/27)]
