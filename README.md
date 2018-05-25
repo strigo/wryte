@@ -298,6 +298,11 @@ The aforementioned optional fields are added to the context if the `WRYTE_EC2_EN
 
 Note that if the data is unattainable for any reason, Wryte will spit out an error message stating so when the logger is instantiated.
 
+#### Container oriented context
+
+If you're running within a container (namely, Docker), the hostname is the only certain identifier you have for your host. Luckily, starting with a rather early version of Docker, the hostname is also the shortened container's id. Even luckily-er, if you're running on EC2, the metadata endpoint is accessible from within the container, so you can pinpoint your exact location by correlating EC2 instance metadata with container ids.
+
+
 #### Binding contextual information to a logger
 
 To prevent having to repeat context with every log message, Wryte allows you to bind any amount of key=value pairs to a logger to add context to it.
