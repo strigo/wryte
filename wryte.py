@@ -127,12 +127,6 @@ class ConsoleFormatter(logging.Formatter):
         level = record['level'] if record['type'] == 'log' else 'EVENT'
         message = record['message']
 
-        # We no longer need them as part of the dict.
-        dk = ('level', 'type', 'hostname', 'pid',
-              'name', 'message', 'timestamp')
-        for key in dk:
-            del record[key]
-
         if COLOR_ENABLED and self.color and not self.simple:
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
