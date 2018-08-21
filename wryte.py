@@ -18,6 +18,7 @@ import uuid
 import json
 import socket
 import logging
+import logging.handlers
 from datetime import datetime
 
 try:
@@ -119,14 +120,13 @@ class ConsoleFormatter(logging.Formatter):
         Performance is also reduced by the amount of fields you have in your
         context (context i.e. k=v).
         """
-        record = record.msg
+        record = record.msg.copy()
 
         # Not popping and deleting later as pop is marginally less performant
         name = record['name']
         timestamp = record['timestamp']
         level = record['level'] if record['type'] == 'log' else 'EVENT'
         message = record['message']
-
         # We no longer need them as part of the dict.
         dk = ('level', 'type', 'hostname', 'pid',
               'name', 'message', 'timestamp')
