@@ -19,6 +19,7 @@ import json
 import socket
 import logging
 from datetime import datetime
+import logging.handlers
 
 try:
     # Python 2
@@ -126,12 +127,6 @@ class ConsoleFormatter(logging.Formatter):
         timestamp = record['timestamp']
         level = record['level'] if record['type'] == 'log' else 'EVENT'
         message = record['message']
-
-        # We no longer need them as part of the dict.
-        dk = ('level', 'type', 'hostname', 'pid',
-              'name', 'message', 'timestamp')
-        for key in dk:
-            del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
             level = str(self._get_level_color(level) + level + Style.RESET_ALL)
