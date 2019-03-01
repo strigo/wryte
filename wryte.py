@@ -144,7 +144,7 @@ class ConsoleFormatter(logging.Formatter):
             # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
             msg += ''.join("\n  %s=%s" % item for item in record.items())
         elif record:
-            msg += '\n{0}'.format(json.dumps(record, indent=4))
+            msg += '\n{}'.format(json.dumps(record, indent=4))
 
         return msg
 
@@ -201,7 +201,7 @@ class Wryte:
         """
         def fetch_ec2(attribute):
             try:
-                return urllib.urlopen('http://169.254.169.254/latest/meta-data/{0}'.format(attribute)).read().decode()
+                return urllib.urlopen('http://169.254.169.254/latest/meta-data/{}'.format(attribute)).read().decode()
             # Yuch. But shouldn't take a risk that any exception will raise
             except Exception: # pylint: disable=broad-except
                 return None
@@ -262,7 +262,7 @@ class Wryte:
                 try:
                     consolidated.update(json.loads(obj))
                 except Exception:  # pylint: disable=broad-except
-                    consolidated['_bad_object_{0}'.format(str(uuid.uuid4()))] = obj
+                    consolidated['_bad_object_{}'.format(str(uuid.uuid4()))] = obj
         return consolidated
 
     def _enrich(self, message, level, objects, kwargs=None):
@@ -315,8 +315,8 @@ class Wryte:
         Setting the variable `WRYTE_HANDLERS_LOGZIO_TOKEN` means
         that it applies to all loggers.
         """
-        logger_env = os.getenv('WRYTE_{0}_{1}'.format(self.logger_name.upper(), variable))
-        global_env = os.getenv('WRYTE_{0}'.format(variable))
+        logger_env = os.getenv('WRYTE_{}_{}'.format(self.logger_name.upper(), variable))
+        global_env = os.getenv('WRYTE_{}'.format(variable))
         return logger_env or global_env or default
 
     def _configure_handlers(self, level, jsonify=False):
