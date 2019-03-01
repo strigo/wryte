@@ -1,0 +1,60 @@
+version: 2
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.6
+      - test-3.5
+      - test-3.4
+      - test-py3pylint
+
+jobs:
+  test-3.6: &test-template
+    docker:
+      - image: circleci/python:3.6-jessie
+    environment:
+      - TOX_ENV: py36
+    working_directory: ~/wryte
+    steps:
+      - checkout
+      - run:
+          name: Install test requirements
+          command: |
+            python3 -m venv venv || virtualenv venv
+            . venv/bin/activate
+            pip install tox codecov
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
+          - v1-dependencies-
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            make testone TOX_ENV=$TOX_ENV
+      - run: . venv/bin/activate && codecov
+      - save_cache:
+          paths:
+            - .tox
+          key: v1-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
+
+  test-3.5:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.5-jessie
+    environment:
+      - TOX_ENV: py35
+
+  test-3.4:
+    <<: *test-template
+    docker:
+      - image: circleci/python:3.4-jessie
+    environment:
+      - TOX_ENV: py34
+
+  test-py3pylint:
+    <<: *test-template
+    environment:
+      - TOX_ENV: py3pylint
+    docker:
+      - image: circleci/python:3.6-jessie

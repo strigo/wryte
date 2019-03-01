@@ -194,8 +194,3 @@ class TestWryte(object):
 
     def test_cli(self):
         _invoke('main info My Message x=y')
-
-    def test_aws(self):
-        os.environ['WRYTE_EC2_ENABLED'] = 'true'
-        w = Wryte(name=str(uuid.uuid4()))
-        w.info('Message')
