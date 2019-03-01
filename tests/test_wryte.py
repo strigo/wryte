@@ -4,7 +4,6 @@ import uuid
 import shlex
 import logging
 
-import mock
 import pytest
 import click.testing as clicktest
 

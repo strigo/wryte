@@ -1,3 +1,5 @@
+# pylint: disable=missing-docstring
+
 # Copyright 2017-2018 Nir Cohen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,23 +68,22 @@ LEVEL_CONVERSION = {
 
 
 class JsonFormatter(logging.Formatter):
-    def __init__(self, pretty=False):
+    def __init__(self, pretty=False): # pylint: disable=super-init-not-called
         self.pretty = pretty
 
     def format(self, record):
-        # TODO: Allow to use ujson or radpijson via config
         return json.dumps(record.msg, indent=4 if self.pretty else None)
 
 
 class ConsoleFormatter(logging.Formatter):
-    def __init__(self, pretty=True, color=True, simple=False):
+    def __init__(self, pretty=True, color=True, simple=False): # pylint: disable=super-init-not-called
         self.pretty = pretty
         self.color = color
 
         _simple = os.getenv('WRYTE_SIMPLE_CONSOLE')
 
         if _simple is not None:
-            self.simple = True if _simple == "true" else False
+            self.simple = _simple == "true"
         else:
             self.simple = simple
 
@@ -128,9 +129,8 @@ class ConsoleFormatter(logging.Formatter):
         level = record['level'] if record['type'] == 'log' else 'EVENT'
         message = record['message']
         # We no longer need them as part of the dict.
-        dk = ('level', 'type', 'hostname', 'pid',
-              'name', 'message', 'timestamp')
-        for key in dk:
+        drop_keys = ('level', 'type', 'hostname', 'pid', 'name', 'message', 'timestamp')
+        for key in drop_keys:
             del record[key]
 
         if COLOR_ENABLED and self.color and not self.simple:
@@ -138,23 +138,18 @@ class ConsoleFormatter(logging.Formatter):
             timestamp = str(Fore.GREEN + timestamp + Style.RESET_ALL)
             name = str(Fore.MAGENTA + name + Style.RESET_ALL)
 
-        if self.simple:
-            msg = message
-        else:
-            msg = ' - '.join((timestamp, name, level, message))
+        msg = message if self.simple else ' - '.join((timestamp, name, level, message))
 
         if self.pretty:
             # https://codereview.stackexchange.com/questions/7953/flattening-a-dictionary-into-a-string
-            msg += ''.join("\n  %s=%s" % item
-                           for item in record.items())
+            msg += ''.join("\n  %s=%s" % item for item in record.items())
         elif record:
-            # TODO: Allow to use ujson or radpijson
             msg += '\n{0}'.format(json.dumps(record, indent=4))
 
         return msg
 
 
-class Wryte(object):
+class Wryte:
     def __init__(self,
                  name=None,
                  hostname=None,
@@ -206,14 +201,11 @@ class Wryte(object):
         """
         def fetch_ec2(attribute):
             try:
-                return urllib.urlopen(
-                    'http://169.254.169.254/latest/meta-data/{0}'.format(
-                        attribute)).read().decode()
+                return urllib.urlopen('http://169.254.169.254/latest/meta-data/{0}'.format(attribute)).read().decode()
             # Yuch. But shouldn't take a risk that any exception will raise
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 return None
 
-        # TODO: Document that these are only generated once.
         base = {
             'name': name,
             'hostname': hostname or socket.gethostname(),
@@ -246,7 +238,8 @@ class Wryte(object):
         # so anyway.
         return datetime.utcnow().isoformat()
 
-    def _normalize_objects(self, objects):
+    @staticmethod
+    def _normalize_objects(objects):
         """Return a normalized dictionary for a list of key value like objects.
 
         This supports parsing dicts, json strings and key=value pairs.
@@ -268,10 +261,8 @@ class Wryte(object):
             else:
                 try:
                     consolidated.update(json.loads(obj))
-                # TODO: Should be a JsonDecoderError
-                except Exception:  # NOQA
-                    consolidated['_bad_object_{0}'.format(
-                        str(uuid.uuid4()))] = obj
+                except Exception:  # pylint: disable=broad-except
+                    consolidated['_bad_object_{0}'.format(str(uuid.uuid4()))] = obj
         return consolidated
 
     def _enrich(self, message, level, objects, kwargs=None):
@@ -324,8 +315,7 @@ class Wryte(object):
         Setting the variable `WRYTE_HANDLERS_LOGZIO_TOKEN` means
         that it applies to all loggers.
         """
-        logger_env = os.getenv('WRYTE_{0}_{1}'.format(
-            self.logger_name.upper(), variable))
+        logger_env = os.getenv('WRYTE_{0}_{1}'.format(self.logger_name.upper(), variable))
         global_env = os.getenv('WRYTE_{0}'.format(variable))
         return logger_env or global_env or default
 
@@ -378,16 +368,14 @@ class Wryte(object):
         if self._assert_level(level):
             self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
         else:
-            return
+            return ''
 
-        # TODO: Allow to ignore fields in json formatter
-        # TODO: Allow to remove field printing in console formatter
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
         elif formatter == 'console':
             if COLOR_ENABLED:
                 colorama.init(autoreset=True)
-            pretty = True if self.pretty in (None, True) else False
+            pretty = self.pretty in (None, True)
             _formatter = ConsoleFormatter(pretty, self.color, self.simple)
         else:
             _formatter = formatter
@@ -410,7 +398,6 @@ class Wryte(object):
         for handler in self.logger.handlers:
             if handler.name == name:
                 self.logger.removeHandler(handler)
-                # TODO: Break here. WTF?
 
     def add_default_json_handler(self, level='debug'):
         return self.add_handler(
@@ -431,9 +418,9 @@ class Wryte(object):
             formatter=formatter,
             level=level)
 
-    def add_file_handler(self, **kwargs):
+    def add_file_handler(self):
         if not self._env('HANDLERS_FILE_PATH'):
-            self.logger.warn('File handler file path not set')
+            self.logger.warning('File handler file path not set')
 
         name = self._env('HANDLERS_FILE_NAME', default='file')
         level = self._env('HANDLERS_FILE_LEVEL', default='info')
@@ -441,13 +428,10 @@ class Wryte(object):
 
         if self._env('HANDLERS_FILE_ROTATE'):
             try:
-                max_bytes = int(
-                    self._env('HANDLERS_FILE_MAX_BYTES', default=13107200))
-                backup_count = int(
-                    self._env('HANDLERS_FILE_BACKUP_COUNT', default=7))
+                max_bytes = int(self._env('HANDLERS_FILE_MAX_BYTES', default=13107200))
+                backup_count = int(self._env('HANDLERS_FILE_BACKUP_COUNT', default=7))
             except ValueError:
-                self.logger.exception(
-                    'MAX_BYTES and BACKUP_COUNT must be integers')
+                self.logger.exception('MAX_BYTES and BACKUP_COUNT must be integers')
                 return
 
             handler = logging.handlers.RotatingFileHandler(
@@ -457,8 +441,7 @@ class Wryte(object):
         elif os.name == 'nt':
             handler = logging.FileHandler(self._env('HANDLERS_FILE_PATH'))
         else:
-            handler = logging.handlers.WatchedFileHandler(
-                self._env('HANDLERS_FILE_PATH'))
+            handler = logging.handlers.WatchedFileHandler(self._env('HANDLERS_FILE_PATH'))
 
         self.add_handler(
             handler=handler,
@@ -466,13 +449,12 @@ class Wryte(object):
             formatter=formatter,
             level=level)
 
-    def add_syslog_handler(self, **kwargs):
+    def add_syslog_handler(self):
         name = self._env('HANDLERS_SYSLOG_NAME', default='syslog')
         level = self._env('HANDLERS_SYSLOG_LEVEL', default='info')
         formatter = self._env('HANDLERS_SYSLOG_FORMATTER', default='json')
 
-        syslog_host = self._env('HANDLERS_SYSLOG_HOST',
-                                default='localhost:514')
+        syslog_host = self._env('HANDLERS_SYSLOG_HOST', default='localhost:514')
         syslog_host = syslog_host.split(':', 1)
 
         if len(syslog_host) == 2:
@@ -485,8 +467,7 @@ class Wryte(object):
 
         socket_type = self._env('HANDLERS_SYSLOG_SOCKET_TYPE', default='udp')
         if socket_type not in ('tcp', 'udp'):
-            self.logger.warn(
-                'syslog handler socket type must be one of tcp/udp')
+            self.logger.warning('syslog handler socket type must be one of tcp/udp')
 
         handler = logging.handlers.SysLogHandler(
             address=address,
@@ -500,10 +481,10 @@ class Wryte(object):
             formatter=formatter,
             level=level)
 
-    def add_logzio_handler(self, **kwargs):
+    def add_logzio_handler(self):
         if LOGZIO_INSTALLED:
             if not self._env('HANDLERS_LOGZIO_TOKEN'):
-                self.logger.warn('Logzio handler token not set')
+                self.logger.warning('Logzio handler token not set')
 
             name = self._env('HANDLERS_LOGZIO_NAME', default='logzio')
             level = self._env('HANDLERS_LOGZIO_LEVEL', default='info')
@@ -521,16 +502,14 @@ class Wryte(object):
                 'You can install it by running `pip install '
                 'wryte[logzio]`')
 
-    def add_elasticsearch_handler(self, **kwargs):
+    def add_elasticsearch_handler(self):
         if ELASTICSEARCH_INSTALLED:
             if not self._env('HANDLERS_ELASTICSEARCH_HOST'):
-                self.logger.warn('Elasticsearch handler host not set')
+                self.logger.warning('Elasticsearch handler host not set')
 
-            name = self._env('HANDLERS_ELASTICSEARCH_NAME',
-                             default='elasticsearch')
+            name = self._env('HANDLERS_ELASTICSEARCH_NAME', default='elasticsearch')
             level = self._env('HANDLERS_ELASTICSEARCH_LEVEL', default='info')
-            formatter = self._env(
-                'HANDLER_ELASTICSEARCH_FORMATTER', default='json')
+            formatter = self._env('HANDLER_ELASTICSEARCH_FORMATTER', default='json')
 
             hosts = []
             es_hosts = self._env('HANDLERS_ELASTICSEARCH_HOST')
@@ -560,10 +539,6 @@ class Wryte(object):
     def set_level(self, level):
         """Set the current logger instance's level.
         """
-        # TODO: Consider removing this check and letting the user
-        # take the hit incase they provide an unreasonable level.
-        # This would reduce overhead when using `set_level` in
-        # error messages under heavy load.
         if not self._assert_level(level):
             return
 
@@ -596,9 +571,7 @@ class Wryte(object):
         explicitly passed in kwargs. Additionally, the `type` of the
         log will be `event`, instead of log, like in other cases.
         """
-        # TODO: Prefix cid key with underscore
         cid = kwargs.get('cid', str(uuid.uuid4()))
-        # TODO: Consider allowing to bind `cid` here.
         objects = objects + ({'type': 'event', 'cid': cid},)
         obj = self._enrich(message, 'info', objects, kwargs)
         self.logger.info(obj)
@@ -665,10 +638,8 @@ class WryteError(Exception):
 def _split_kv(pair):
     """Return dict for key=value.
     """
-    # TODO: Document that this is costly.
-    # TODO: Document that it's only split once.
-    kv = pair.split('=', 1)
-    return {kv[0]: kv[1]}
+    key_value = pair.split('=', 1)
+    return {key_value[0]: key_value[1]}
 
 
 if CLI_ENABLED:
@@ -724,7 +695,7 @@ if CLI_ENABLED:
             try:
                 json.loads(obj)
                 objcts.append(obj)
-            except Exception:
+            except Exception: # pylint: disable=broad-except
                 if '=' in obj:
                     objcts.append(_split_kv(obj))
 
