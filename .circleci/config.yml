@@ -6,6 +6,7 @@ workflows:
       - test-3.6
       - test-3.5
       - test-3.4
+      - test-2.7
       - test-py3pylint
 
 jobs:
@@ -51,6 +52,13 @@ jobs:
       - image: circleci/python:3.4-jessie
     environment:
       - TOX_ENV: py34
+
+  test-2.7:
+    <<: *test-template
+    docker:
+      - image: circleci/python:2.7-jessie
+    environment:
+      - TOX_ENV: py27
 
   test-py3pylint:
     <<: *test-template
