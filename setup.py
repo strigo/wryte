@@ -13,9 +13,9 @@ def read(*parts):
 setup(
     name='wryte',
     version="0.3.1",
-    url='https://github.com/nir0s/wryte',
+    url='https://github.com/strigo/wryte',
     author='nir0s',
-    author_email='nir36g@gmail.com',
+    author_email='ops@strigo.io',
     license='LICENSE',
     platforms='All',
     description='Simply Log',
