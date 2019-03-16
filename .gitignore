@@ -60,3 +60,5 @@ docs/_build/
 
 # QuickBuild
 .qbcache/
+
+pytype_output/

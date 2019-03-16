@@ -23,6 +23,7 @@ import logging
 import logging.handlers
 from datetime import datetime
 
+# pytype: disable=import-error
 try:
     # Python 2
     import urllib2 as urllib
@@ -38,7 +39,7 @@ except ImportError:
     COLOR_ENABLED = False
 
 try:
-    import click
+    import click # pytype: disable=pyi-error
     CLI_ENABLED = True
 except ImportError:
     CLI_ENABLED = False
@@ -54,6 +55,7 @@ try:
     ELASTICSEARCH_INSTALLED = True
 except ImportError:
     ELASTICSEARCH_INSTALLED = False
+# pytype: enable=import-error
 
 
 LEVEL_CONVERSION = {
@@ -381,7 +383,10 @@ class Wryte:
             _formatter = formatter
 
         handler.setFormatter(_formatter)
-        handler.set_name(name)
+        try:
+            handler.set_name(name) # pytype: disable=attribute-error
+        except AttributeError:
+            handler.name = name
 
         self.logger.addHandler(handler)
 
@@ -421,6 +426,7 @@ class Wryte:
     def add_file_handler(self):
         if not self._env('HANDLERS_FILE_PATH'):
             self.logger.warning('File handler file path not set')
+            return
 
         name = self._env('HANDLERS_FILE_NAME', default='file')
         level = self._env('HANDLERS_FILE_LEVEL', default='info')
@@ -468,12 +474,14 @@ class Wryte:
         socket_type = self._env('HANDLERS_SYSLOG_SOCKET_TYPE', default='udp')
         if socket_type not in ('tcp', 'udp'):
             self.logger.warning('syslog handler socket type must be one of tcp/udp')
+            return
 
         handler = logging.handlers.SysLogHandler(
             address=address,
             facility=self._env('HANDLERS_SYSLOG_FACILITY', default='LOG_USER'),
             socktype=socket.SOCK_STREAM if socket_type == 'tcp'
-            else socket.SOCK_DGRAM)
+            else socket.SOCK_DGRAM) # pytype: disable=wrong-arg-types
+            # See https://docs.python.org/3/library/logging.handlers.html#sysloghandler
 
         self.add_handler(
             handler=handler,
@@ -485,6 +493,7 @@ class Wryte:
         if LOGZIO_INSTALLED:
             if not self._env('HANDLERS_LOGZIO_TOKEN'):
                 self.logger.warning('Logzio handler token not set')
+                return
 
             name = self._env('HANDLERS_LOGZIO_NAME', default='logzio')
             level = self._env('HANDLERS_LOGZIO_LEVEL', default='info')
@@ -504,15 +513,16 @@ class Wryte:
 
     def add_elasticsearch_handler(self):
         if ELASTICSEARCH_INSTALLED:
-            if not self._env('HANDLERS_ELASTICSEARCH_HOST'):
+            es_hosts = self._env('HANDLERS_ELASTICSEARCH_HOST')
+            if not es_hosts:
                 self.logger.warning('Elasticsearch handler host not set')
+                return
 
             name = self._env('HANDLERS_ELASTICSEARCH_NAME', default='elasticsearch')
             level = self._env('HANDLERS_ELASTICSEARCH_LEVEL', default='info')
             formatter = self._env('HANDLER_ELASTICSEARCH_FORMATTER', default='json')
 
             hosts = []
-            es_hosts = self._env('HANDLERS_ELASTICSEARCH_HOST')
             es_hosts = es_hosts.split(',')
             for es_host in es_hosts:
                 host, port = es_host.split(':', 1)
