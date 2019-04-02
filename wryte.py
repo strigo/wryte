@@ -70,7 +70,7 @@ LEVEL_CONVERSION = {
 
 
 class JsonFormatter(logging.Formatter):
-    def __init__(self, pretty=False): # pylint: disable=super-init-not-called
+    def __init__(self, pretty=False):
         self.pretty = pretty
 
     def format(self, record):
@@ -78,7 +78,7 @@ class JsonFormatter(logging.Formatter):
 
 
 class ConsoleFormatter(logging.Formatter):
-    def __init__(self, pretty=True, color=True, simple=False): # pylint: disable=super-init-not-called
+    def __init__(self, pretty=True, color=True, simple=False):
         self.pretty = pretty
         self.color = color
 
