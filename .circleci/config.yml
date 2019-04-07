@@ -22,7 +22,7 @@ jobs:
       - run:
           name: Install test requirements
           command: |
-            python3 -m venv venv || virtualenv venv
+            python -m venv venv || virtualenv venv
             . venv/bin/activate
             pip install tox codecov
       - restore_cache:
