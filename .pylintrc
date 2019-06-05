@@ -455,7 +455,7 @@ min-similarity-lines=4
 [DESIGN]
 
 # Maximum number of arguments for function / method
-max-args=10
+max-args=20
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=20
