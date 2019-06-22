@@ -22,6 +22,11 @@ setup(
     long_description=read('README.rst'),
     py_modules=['wryte'],
     entry_points={'console_scripts': ['wryte = wryte:main']},
+    tests_require=[
+        'pytest',   
+        'pytest-cov',
+        'click'
+    ],
     extras_require={
         'color': ['colorama'],
         'cli': ['click>=6.7'],

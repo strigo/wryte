@@ -1,36 +1,21 @@
-from datetime import datetime
-
-import numpy
-
 from wryte import Wryte
+import timeit
+import statistics
 
+w = Wryte(color=False, simple=False)
+w.remove_handler('_console')
 
-def _test_simple_message(count):
-    w = Wryte(color=False, simple=False)
-    w.remove_handler('_console')
-    timing = []
+def benchmark(code, repeat=20, number=10000):
+    print('Benchmarking: `{}`'.format(code))
+    results = timeit.repeat(code, repeat=repeat, number=number, globals={'w': w})
+    avg = sum(results) / len(results)
+    p90 = sorted(results)[int(len(results)*0.9)]
+    print('20 iterations: ')
+    print('\n'.join(map(str, results)))
+    print('avg: {}, P90: {}'.format(statistics.mean(results), p90))
 
-    for _ in range(5):
-        now = datetime.now()
-
-        for _ in range(count):
-            w.info('My Message')
-
-        timing.append((datetime.now() - now).total_seconds() * 1000.0)
-
-    return numpy.average(timing[1:])
-
-
-avgs = []
-
-for _ in range(15):
-    result = _test_simple_message(10000)
-    avgs.append(result)
-    print(result)
-
-print('\navg of avgs:')
-print(numpy.average(avgs[1:]))
-
+benchmark('w.info("test message")')
+benchmark('w.info("test message with context", {"key": "value"})')
 # without handlers, simple message
 # 648e0c2: ~260ms
 # 764dc31: ~260ms

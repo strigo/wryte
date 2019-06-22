@@ -1,41 +1,27 @@
 from datetime import datetime
-
-import numpy
 import pytest
+import timeit
 
 import wryte
 from wryte import Wryte
+
+def average(numbers):
+    return sum(numbers) / float(len(numbers))
 
 
 class TestPerf(object):
     def _test_simple_message(self):
         w = Wryte(color=False, simple=True)
-
-        timing = []
-
-        for _ in range(5):
-            now = datetime.now()
-
-            for _ in range(10):
-                w.info('My Message')
-
-            timing.append((datetime.now() - now).total_seconds() * 1000.0)
-
+        results = timeit.repeat('w.info(\'My Message\')', repeat=5, number=1000, globals={'w': w})
         # This is just a benchmark. This should NEVER take this long.
-        assert numpy.average(timing[1:]) < 10
+        assert average(results) < 1
 
     def test_simple_context(self):
         w = Wryte(color=False)
 
-        timing = []
 
-        for _ in range(5):
-            now = datetime.now()
+        results = timeit.repeat("w.info('My Message', {'key': 'value'})", repeat=5, number=1000, globals={'w': w})
 
-            for _ in range(10):
-                w.info('My Message', {'key': 'value'})
-
-            timing.append((datetime.now() - now).total_seconds() * 1000.0)
 
         # This is just a benchmark. This should NEVER take this long.
-        assert numpy.average(timing[1:]) < 10
+        assert average(results) < 1
