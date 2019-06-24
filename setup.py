@@ -12,7 +12,7 @@ def read(*parts):
 
 setup(
     name='wryte',
-    version="0.3.1",
+    version="0.4.0",
     url='https://github.com/strigo/wryte',
     author='nir0s',
     author_email='ops@strigo.io',
