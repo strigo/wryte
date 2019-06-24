@@ -344,14 +344,6 @@ class Wryte:
         if self._env('HANDLERS_ELASTICSEARCH_ENABLED'):
             self.add_elasticsearch_handler()
 
-    def _assert_level(self, level):
-        levels = LEVEL_CONVERSION.keys()
-
-        if level.lower() not in levels:
-            self.logger.exception('Level must be one of %s', levels)
-            return False
-        return True
-
     def add_handler(self,
                     handler,
                     name=None,
@@ -367,10 +359,7 @@ class Wryte:
         """
         name = name or str(uuid.uuid4())
 
-        if self._assert_level(level):
-            self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
-        else:
-            return ''
+        self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
 
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
@@ -549,9 +538,6 @@ class Wryte:
     def set_level(self, level):
         """Set the current logger instance's level.
         """
-        if not self._assert_level(level):
-            return
-
         self.logger.setLevel(level.upper())
 
     def bind(self, *objects, **kwargs):
@@ -602,12 +588,11 @@ class Wryte:
         can practically pass weird logging levels.
         """
         obj = self._enrich(message, level, objects, kwargs)
-        if '_set_level' in kwargs:
-            self.set_level(kwargs['_set_level'])
-
-        if not self._assert_level(level):
+        try:
+            level_num = LEVEL_CONVERSION[level]
+        except AttributeError:
             return
-        self.logger.log(LEVEL_CONVERSION[level], obj)
+        self.logger.log(level_num, obj)
 
     # Ideally, we'd use `self.log` for all of these, but since
     # level conversion would affect performance, it's better to now to

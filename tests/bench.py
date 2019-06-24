@@ -16,6 +16,7 @@ def benchmark(code, repeat=20, number=10000):
 
 benchmark('w.info("test message")')
 benchmark('w.info("test message with context", {"key": "value"})')
+benchmark('w.log("info", "test messge")')
 # without handlers, simple message
 # 648e0c2: ~260ms
 # 764dc31: ~260ms
