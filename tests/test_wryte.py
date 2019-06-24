@@ -87,15 +87,15 @@ class TestWryte(object):
 
     def test_bind_unbind(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert 'k' not in w._log.keys()
+        assert 'k' not in w._log_context
         w.bind({'k1': 'v1'}, '{"k2": "v2"}', k3='v3')
-        assert 'k1' in w._log.keys()
-        assert 'k2' in w._log.keys()
-        assert 'k3' in w._log.keys()
+        assert 'k1' in w._log_context
+        assert 'k2' in w._log_context
+        assert 'k3' in w._log_context
         w.unbind('k1', 'k2', 'k3')
-        assert 'k1' not in w._log.keys()
-        assert 'k2' not in w._log.keys()
-        assert 'k3' not in w._log.keys()
+        assert 'k1' not in w._log_context
+        assert 'k2' not in w._log_context
+        assert 'k3' not in w._log_context
 
     def test_bare_handler(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
@@ -114,16 +114,16 @@ class TestWryte(object):
         assert len(w.list_handlers()) == 1
         assert w.list_handlers() == ['_json']
         assert name == '_json'
-        assert w.logger.getEffectiveLevel() == 10
+        assert w.get_level() == 10
 
     def test_add_handler_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
-        w.add_handler(
-            handler=logging.StreamHandler(sys.stdout),
-            name='_json',
-            formatter='json',
-            level='BOOBOO')
-        assert len(w.list_handlers()) == 0
+        with pytest.raises(ValueError):
+            w.add_handler(
+                handler=logging.StreamHandler(sys.stdout),
+                name='_json',
+                formatter='json',
+                level='BOOBOO')
 
     def test_another_formatter(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
@@ -159,15 +159,14 @@ class TestWryte(object):
 
     def test_set_level(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert w.logger.getEffectiveLevel() == 20
+        assert w.get_level() == logging.INFO
         w.set_level('debug')
-        assert w.logger.getEffectiveLevel() == 10
+        assert w.get_level() == logging.DEBUG
 
     def test_set_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert w.logger.getEffectiveLevel() == 20
-        w.set_level('deboog')
-        assert w.logger.getEffectiveLevel() == 20
+        with pytest.raises(ValueError):
+            w.set_level('deboog')
 
     def test_log_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()))
@@ -175,21 +174,28 @@ class TestWryte(object):
 
     def test_set_level_from_error(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert w.logger.getEffectiveLevel() == 20
+        assert w.get_level() == logging.INFO
         w.error('My Error', _set_level='debug')
-        assert w.logger.getEffectiveLevel() == 10
+        assert w.get_level() == logging.DEBUG
 
     def test_set_level_from_critical(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert w.logger.getEffectiveLevel() == 20
+        assert w.get_level() == logging.INFO
         w.critical('My Error', _set_level='debug')
-        assert w.logger.getEffectiveLevel() == 10
+        assert w.get_level() == logging.DEBUG
 
     def test_set_level_from_log(self):
         w = Wryte(name=str(uuid.uuid4()))
-        assert w.logger.getEffectiveLevel() == 20
+        assert w.get_level() == logging.INFO
         w.log('error', 'My Error', _set_level='debug')
-        assert w.logger.getEffectiveLevel() == 10
+        assert w.get_level() == logging.DEBUG
+
+    def test_nested_logger(self):
+        w = Wryte(name='original')
+        w2 = w.nested(test='test')
+        assert 'test' not in w._log_context
+        assert 'test' in w2._log_context
+
 
     def test_cli(self):
         _invoke('main info My Message x=y')

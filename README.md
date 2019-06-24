@@ -28,6 +28,7 @@ Note that the following documentation relates to the code currently in the maste
 * Enrich with AWS EC2 metadata (instance-id, instance-type, region and ipv4) if available
 * Easily provide contexual data
 * Context binding to prevent repetition
+* Nested logger context
 * Dynamic severity levels
 * Retroactive logging (WIP)
 * Assist in user tracing (via auto-provided context ids)
@@ -318,6 +319,22 @@ wryter.unbind('user_id')
 ```
 
 And just like with the logger itself, you can bind nested dicts, kwargs and JSON strings.
+### Nested logger context
+
+In many cases you want to bind some information specific to the context, without modifying the original binded parameters. Wryte supports this using the `nested` method:
+
+```python
+nested_wryter = wryter.nested(name='nested', {'user_id': framework.user}, key=value)
+```
+
+Alternatively `nested` can be used as a context manager:
+```python
+with wryter.nested(stage='some-stage', requestId=uuid.uuid4()) as wryter:
+    wryter.info('ooh nice the above key value pairs will be attached to any log message')
+```
+
+This is preferable to `bind` as there is no need to `unbind`.
+
 #### Badly formatted context
 
 When providing a badly formatted context (e.g. `wryte.info('Message', ['bad_context'])`), a field containing the provided context will be added to the log like so:

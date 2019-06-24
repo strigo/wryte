@@ -22,6 +22,7 @@ import socket
 import logging
 import logging.handlers
 from datetime import datetime
+import copy
 
 # pytype: disable=import-error
 try:
@@ -58,16 +59,22 @@ except ImportError:
 # pytype: enable=import-error
 
 
-LEVEL_CONVERSION = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warning': logging.WARNING,
-    'warn': logging.WARN,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL,
-    'event': logging.INFO
-}
+if hasattr(logging, '_nameToLevel'):
+    LEVEL_CONVERSION = logging._nameToLevel
+else: # python 2.x
+    LEVEL_CONVERSION = dict((level_str, level_num) for (level_str, level_num) in logging._levelNames.items() if isinstance(level_str, str))
 
+
+if COLOR_ENABLED:
+    COLOR_MAPPING = {
+                'debug': Fore.CYAN,
+                'info': Fore.GREEN,
+                'warning': Fore.YELLOW,
+                'warn': Fore.YELLOW,
+                'error': Fore.RED,
+                'critical': Style.BRIGHT + Fore.RED,
+                'event': Style.BRIGHT + Fore.GREEN,
+            }
 
 class JsonFormatter(logging.Formatter):
     def __init__(self, pretty=False):
@@ -91,16 +98,8 @@ class ConsoleFormatter(logging.Formatter):
 
     @staticmethod
     def _get_level_color(level):
-        mapping = {
-            'debug': Fore.CYAN,
-            'info': Fore.GREEN,
-            'warning': Fore.YELLOW,
-            'warn': Fore.YELLOW,
-            'error': Fore.RED,
-            'critical': Style.BRIGHT + Fore.RED,
-            'event': Style.BRIGHT + Fore.GREEN,
-        }
-        return mapping.get(level.lower())
+
+        return COLOR_MAPPING.get(level.lower())
 
     def format(self, record):
         """Formats the message to be human readable
@@ -151,7 +150,7 @@ class ConsoleFormatter(logging.Formatter):
         return msg
 
 
-class Wryte:
+class WryteLoggerEngine(object):
     def __init__(self,
                  name=None,
                  hostname=None,
@@ -230,79 +229,6 @@ class Wryte:
 
         return base
 
-    @staticmethod
-    def _get_timestamp():
-        # `now()` needs to compensate for timezones, and so it takes much
-        # more time to evaluate. `udatetime` doesn't help here and actually
-        # takes more time both on Python2 and Python3.
-        # This is by no means a reason to use utcnow,
-        # but since we should standardize the timestamp, it makes sense to do
-        # so anyway.
-        return datetime.utcnow().isoformat()
-
-    @staticmethod
-    def _normalize_objects(objects):
-        """Return a normalized dictionary for a list of key value like objects.
-
-        This supports parsing dicts, json strings and key=value pairs.
-
-        e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
-        return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
-
-        A `bad_object_uuid` field will be added to the context if an object
-        doesn't fit the supported formats.
-        """
-        consolidated = {}
-
-        for obj in objects:
-            # We if here instead of try-excepting since it's not obvious
-            # what the distribution between dict and json will be and if
-            # costs much less when the distribution is flat.
-            if isinstance(obj, dict):
-                consolidated.update(obj)
-            else:
-                try:
-                    consolidated.update(json.loads(obj))
-                except Exception:  # pylint: disable=broad-except
-                    consolidated['_bad_object_{}'.format(str(uuid.uuid4()))] = obj
-        return consolidated
-
-    def _enrich(self, message, level, objects, kwargs=None):
-        """Return a metadata enriched object which includes the level,
-        message and keys provided in all objects.
-
-        Example:
-
-        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'] k=v,
-
-        Return:
-        {
-            'timestamp': '2017-12-22T17:02:59.550920',
-            'level': 'INFO',
-            'message': 'MESSAGE',
-            'key1': 'value1',
-            'key2': 'value2',
-            'k': 'v',
-            'name': 'my-logger-name',
-            'hostname': 'my-host',
-            'pid': 51223
-        }
-        """
-        log = self._log.copy()
-
-        # Normalizes and adds dictionary-like context.
-        log.update(self._normalize_objects(objects))
-
-        # Adds k=v like context
-        if kwargs:
-            log.update(kwargs)
-
-        # Appends default fields.
-        log['message'] = message
-        log['level'] = level.upper()
-        log['timestamp'] = self._get_timestamp()
-
-        return log
 
     def _env(self, variable, default=None):
         """Return the value of an environment variable if it is set.
@@ -359,7 +285,7 @@ class Wryte:
         """
         name = name or str(uuid.uuid4())
 
-        self.logger.setLevel(LEVEL_CONVERSION[level.lower()])
+        self.logger.setLevel(level.upper())        
 
         if formatter == 'json':
             _formatter = JsonFormatter(self.pretty or False)
@@ -540,15 +466,110 @@ class Wryte:
         """
         self.logger.setLevel(level.upper())
 
+    def get_level(self):
+        return self.logger.getEffectiveLevel()
+
+
+
+def _proxy_method(name):
+    def method(self, *args, **kwargs):
+        return getattr(self._log_engine, name)(*args, **kwargs)
+
+    method.__name__ = name
+    return method
+
+
+class WryteLogger(object):
+    def __init__(self, log_engine, log_context=None):
+        self._log_engine = log_engine
+        if log_context:
+            self._log_context = log_context
+        else:
+            self._log_context = {}
+
+    @staticmethod
+    def _normalize_objects(objects):
+        """Return a normalized dictionary for a list of key value like objects.
+
+        This supports parsing dicts, json strings and key=value pairs.
+
+        e.g. for ['key1=value1', {'key2': 'value2'}, '{"key3":"value3"}']
+        return dict {'key1': 'value1', 'key2': 'value2', 'key3': 'value3'}
+
+        A `bad_object_uuid` field will be added to the context if an object
+        doesn't fit the supported formats.
+        """
+        consolidated = {}
+
+        for obj in objects:
+            # We if here instead of try-excepting since it's not obvious
+            # what the distribution between dict and json will be and if
+            # costs much less when the distribution is flat.
+            if isinstance(obj, dict):
+                consolidated.update(obj)
+            else:
+                try:
+                    consolidated.update(json.loads(obj))
+                except Exception:  # pylint: disable=broad-except
+                    consolidated['_bad_object_{}'.format(str(uuid.uuid4()))] = obj
+        return consolidated
+
+    @staticmethod
+    def _get_timestamp():
+        # `now()` needs to compensate for timezones, and so it takes much
+        # more time to evaluate. `udatetime` doesn't help here and actually
+        # takes more time both on Python2 and Python3.
+        # This is by no means a reason to use utcnow,
+        # but since we should standardize the timestamp, it makes sense to do
+        # so anyway.
+        return datetime.utcnow().isoformat()
+        
+    def _enrich(self, message, level, objects, kwargs=None):
+        """Return a metadata enriched object which includes the level,
+        message and keys provided in all objects.
+
+        Example:
+
+        Given 'MESSAGE', 'info', ['{"key1":"value1"}', 'key2=value2'] k=v,
+
+        Return:
+        {
+            'timestamp': '2017-12-22T17:02:59.550920',
+            'level': 'INFO',
+            'message': 'MESSAGE',
+            'key1': 'value1',
+            'key2': 'value2',
+            'k': 'v',
+            'name': 'my-logger-name',
+            'hostname': 'my-host',
+            'pid': 51223
+        }
+        """
+        log = self._log_context.copy()
+
+        # Normalizes and adds dictionary-like context.
+        log.update(self._normalize_objects(objects))
+
+        # Adds k=v like context
+        if kwargs:
+            log.update(kwargs)
+
+        # Appends default fields.
+        log['message'] = message
+        log['level'] = level.upper()
+        log['timestamp'] = self._get_timestamp()
+
+        return log
+
     def bind(self, *objects, **kwargs):
         """Bind context to the logger's instance.
 
         After binding, each log entry will contain the bound fields.
         """
-        self._log.update(self._normalize_objects(objects))
+        self._log_context.update(self._normalize_objects(objects))
 
         if kwargs:
-            self._log.update(kwargs)
+            self._log_context.update(kwargs)
 
     def unbind(self, *keys):
         """Unbind previously bound context.
@@ -558,7 +579,7 @@ class Wryte:
             # that 99% of the time the keys will exist so it will be faster.
             # Thing is, that unbinding shouldn't happen thousands of
             # times a second, so we'll go for readability here.
-            self._log.pop(key)
+            self._log_context.pop(key)
 
     def event(self, message, *objects, **kwargs):
         """Log an event and return a cid for it.
@@ -570,7 +591,7 @@ class Wryte:
         cid = kwargs.get('cid', str(uuid.uuid4()))
         objects = objects + ({'type': 'event', 'cid': cid},)
         obj = self._enrich(message, 'info', objects, kwargs)
-        self.logger.info(obj)
+        self._log_engine.logger.info(obj)
         return cid
 
     def log(self, level, message, *objects, **kwargs):
@@ -589,42 +610,85 @@ class Wryte:
         """
         obj = self._enrich(message, level, objects, kwargs)
         try:
-            level_num = LEVEL_CONVERSION[level]
-        except AttributeError:
+            level_num = LEVEL_CONVERSION[level.upper()]
+        except KeyError:
             return
-        self.logger.log(level_num, obj)
+        if '_set_level' in kwargs:
+            try:
+                self.set_level(kwargs['_set_level'])
+            except ValueError as err:
+                self.warn('_set_level set to uknown level: {}'.format(err))
+
+        self._log_engine.logger.log(level_num, obj)
 
     # Ideally, we'd use `self.log` for all of these, but since
     # level conversion would affect performance, it's better to now to
     # until figuring something out.
     def debug(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'debug', objects, kwargs)
-        self.logger.debug(obj)
+        obj = self._enrich(message, 'DEBUG', objects, kwargs)
+        self._log_engine.logger.debug(obj)
 
     def info(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'info', objects, kwargs)
-        self.logger.info(obj)
+        obj = self._enrich(message, 'INFO', objects, kwargs)
+        self._log_engine.logger.info(obj)
 
     def warn(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'warning', objects, kwargs)
-        self.logger.warning(obj)
+        obj = self._enrich(message, 'WARNING', objects, kwargs)
+        self._log_engine.logger.warning(obj)
 
     def warning(self, message, *objects, **kwargs):
-        obj = self._enrich(message, 'warning', objects, kwargs)
-        self.logger.warning(obj)
+        obj = self._enrich(message, 'WARNING', objects, kwargs)
+        self._log_engine.logger.warning(obj)
 
     def error(self, message, *objects, **kwargs):
         if '_set_level' in kwargs:
-            self.set_level(kwargs['_set_level'])
-        obj = self._enrich(message, 'error', objects, kwargs)
-        self.logger.error(obj)
+            try:
+                self.set_level(kwargs['_set_level'])
+            except ValueError as err:
+                self.warn('_set_level set to uknown level: {}'.format(err))
+        obj = self._enrich(message, 'ERROR', objects, kwargs)
+        self._log_engine.logger.error(obj)
 
     def critical(self, message, *objects, **kwargs):
         if '_set_level' in kwargs:
-            self.set_level(kwargs['_set_level'])
-        obj = self._enrich(message, 'critical', objects, kwargs)
-        self.logger.critical(obj)
+            try:
+                self.set_level(kwargs['_set_level'])
+            except ValueError as err:
+                self.warn('_set_level set to uknown level: {}'.format(err))
+        obj = self._enrich(message, 'CRITICAL', objects, kwargs)
+        self._log_engine.logger.critical(obj)
 
+    set_level = _proxy_method('set_level')
+    get_level = _proxy_method('get_level')
+    
+    def nested(self, context=None, **kwargs):
+        _context = copy.deepcopy(self._log_context)
+        if isinstance(context, dict):
+            _context.update(context)
+        _context.update(kwargs)
+
+        return WryteLogger(self._log_engine, _context)
+
+class Wryte(WryteLogger):
+    def __init__(self,
+                 name=None,
+                 hostname=None,
+                 level='INFO',
+                 pretty=None,
+                 bare=False,
+                 jsonify=False,
+                 color=True,
+                 simple=False,
+                 enable_ec2=False):
+        super().__init__(WryteLoggerEngine(name=name, hostname=hostname,
+                                    level=level, pretty=pretty,
+                                    bare=bare, jsonify=jsonify,
+                                    color=color,
+                                    simple=simple, enable_ec2=enable_ec2))
+    
+    add_handler = _proxy_method('add_handler')
+    list_handlers = _proxy_method('list_handlers')
+    remove_handler = _proxy_method('remove_handler')
 
 class WryteError(Exception):
     pass
