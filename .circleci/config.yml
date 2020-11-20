@@ -3,19 +3,18 @@ workflows:
   version: 2
   test:
     jobs:
+      - test-3.7
       - test-3.6
       - test-3.5
-      - test-3.4
-      - test-2.7
       - test-py3pylint
       - test-py3pytype
 
 jobs:
-  test-3.6: &test-template
+  test-3.7: &test-template
     docker:
-      - image: circleci/python:3.6-jessie
+      - image: cimg/python:3.7
     environment:
-      - TOX_ENV: py36
+      - TOX_ENV: py37
     working_directory: ~/wryte
     steps:
       - checkout
@@ -40,37 +39,26 @@ jobs:
             - .tox
           key: v1-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
 
+  test-3.6:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.6
+    environment:
+      - TOX_ENV: py36
+
   test-3.5:
     <<: *test-template
     docker:
-      - image: circleci/python:3.5-jessie
+      - image: cimg/python:3.5
     environment:
       - TOX_ENV: py35
-
-  test-3.4:
-    <<: *test-template
-    docker:
-      - image: circleci/python:3.4-jessie
-    environment:
-      - TOX_ENV: py34
-
-  test-2.7:
-    <<: *test-template
-    docker:
-      - image: circleci/python:2.7-jessie
-    environment:
-      - TOX_ENV: py27
 
   test-py3pylint:
     <<: *test-template
     environment:
       - TOX_ENV: py3pylint
-    docker:
-      - image: circleci/python:3.6-jessie
 
   test-py3pytype:
     <<: *test-template
     environment:
       - TOX_ENV: py3pytype
-    docker:
-      - image: circleci/python:3.6-jessie
