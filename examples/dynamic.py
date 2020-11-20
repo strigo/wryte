@@ -21,8 +21,7 @@ try:
     config_file_read = True
 except Exception as ex:
     # Can also pass `set_level` to `critical`, not just to `error`.
-    wryter.error('Failed to read config ({})'.format(
-        ex), {'context': 'some_context'}, _set_level='debug')
+    wryter.error('Failed to read config ({})'.format(ex), {'context': 'some_context'}, _set_level='debug')
     # do_something to reread the file, but this time with debug logging enabled.
     config = read_config(PATH)
     config_file_read = True
