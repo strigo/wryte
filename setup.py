@@ -12,9 +12,9 @@ def read(*parts):
 
 setup(
     name='wryte',
-    version="0.3.1",
+    version="1.0.0",
     url='https://github.com/strigo/wryte',
-    author='nir0s',
+    author='strigo.io',
     author_email='ops@strigo.io',
     license='LICENSE',
     platforms='All',
@@ -26,14 +26,13 @@ setup(
         'color': ['colorama'],
         'cli': ['click>=6.7'],
         'elasticsearch': ['CMRESHandler'],
-        'logzio': ['logzio-python-handler']
+        'logzio': ['logzio-python-handler'],
     },
     classifiers=[
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Natural Language :: English',
         'Environment :: Console',
         'Intended Audience :: Developers',
