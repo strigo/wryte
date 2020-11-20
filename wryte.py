@@ -34,24 +34,28 @@ except ImportError:
 try:
     import colorama
     from colorama import Fore, Style
+
     COLOR_ENABLED = True
 except ImportError:
     COLOR_ENABLED = False
 
 try:
-    import click # pytype: disable=pyi-error
+    import click  # pytype: disable=pyi-error
+
     CLI_ENABLED = True
 except ImportError:
     CLI_ENABLED = False
 
 try:
     from logzio.handler import LogzioHandler
+
     LOGZIO_INSTALLED = True
 except ImportError:
     LOGZIO_INSTALLED = False
 
 try:
     from cmreslogging.handlers import CMRESHandler
+
     ELASTICSEARCH_INSTALLED = True
 except ImportError:
     ELASTICSEARCH_INSTALLED = False
@@ -65,7 +69,7 @@ LEVEL_CONVERSION = {
     'warn': logging.WARN,
     'error': logging.ERROR,
     'critical': logging.CRITICAL,
-    'event': logging.INFO
+    'event': logging.INFO,
 }
 
 
@@ -152,16 +156,18 @@ class ConsoleFormatter(logging.Formatter):
 
 
 class Wryte:
-    def __init__(self,
-                 name=None,
-                 hostname=None,
-                 level='info',
-                 pretty=None,
-                 bare=False,
-                 jsonify=False,
-                 color=True,
-                 simple=False,
-                 enable_ec2=False):
+    def __init__(
+        self,
+        name=None,
+        hostname=None,
+        level='info',
+        pretty=None,
+        bare=False,
+        jsonify=False,
+        color=True,
+        simple=False,
+        enable_ec2=False,
+    ):
         """Instantiate a logger instance.
 
         Either a JSON or a Console handler will be added to the logger
@@ -190,8 +196,7 @@ class Wryte:
 
     @staticmethod
     def _logger(name):
-        """Return a named logger instance.
-        """
+        """Return a named logger instance."""
         logger = logging.getLogger(name)
         return logger
 
@@ -201,11 +206,12 @@ class Wryte:
         This is evaluated once when the logger's instance is instantiated.
         It is then later copied by each log message.
         """
+
         def fetch_ec2(attribute):
             try:
                 return urllib.urlopen('http://169.254.169.254/latest/meta-data/{}'.format(attribute)).read().decode()
             # Yuch. But shouldn't take a risk that any exception will raise
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 return None
 
         base = {
@@ -226,7 +232,8 @@ class Wryte:
             else:
                 self.logger.error(
                     'WRYTE EC2 env var set but EC2 metadata endpoint is '
-                    'unavailable or the data could not be retrieved.')
+                    'unavailable or the data could not be retrieved.'
+                )
 
         return base
 
@@ -352,11 +359,7 @@ class Wryte:
             return False
         return True
 
-    def add_handler(self,
-                    handler,
-                    name=None,
-                    formatter='json',
-                    level='info'):
+    def add_handler(self, handler, name=None, formatter='json', level='info'):
         """Add a handler to the logger instance and return its name.
 
         A `handler` can be any standard `logging` handler.
@@ -384,7 +387,7 @@ class Wryte:
 
         handler.setFormatter(_formatter)
         try:
-            handler.set_name(name) # pytype: disable=attribute-error
+            handler.set_name(name)  # pytype: disable=attribute-error
         except AttributeError:
             handler.name = name
 
@@ -393,13 +396,11 @@ class Wryte:
         return name
 
     def list_handlers(self):
-        """Return a list of all handlers attached to a logger
-        """
+        """Return a list of all handlers attached to a logger"""
         return [handler.name for handler in self.logger.handlers]
 
     def remove_handler(self, name):
-        """Remove a handler by its name (set in `add_handler`)
-        """
+        """Remove a handler by its name (set in `add_handler`)"""
         for handler in self.logger.handlers:
             if handler.name == name:
                 self.logger.removeHandler(handler)
@@ -409,7 +410,8 @@ class Wryte:
             handler=logging.StreamHandler(sys.stdout),
             name='_json',
             formatter='json',
-            level=self._env('CONSOLE_LEVEL', level))
+            level=self._env('CONSOLE_LEVEL', level),
+        )
 
     def add_default_console_handler(self, level='debug'):
         name = '_console'
@@ -417,11 +419,7 @@ class Wryte:
         formatter = 'console'
         handler = logging.StreamHandler(sys.stdout)
 
-        return self.add_handler(
-            handler=handler,
-            name=name,
-            formatter=formatter,
-            level=level)
+        return self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
 
     def add_file_handler(self):
         if not self._env('HANDLERS_FILE_PATH'):
@@ -441,19 +439,14 @@ class Wryte:
                 return
 
             handler = logging.handlers.RotatingFileHandler(
-                self._env('HANDLERS_FILE_PATH'),
-                maxBytes=max_bytes,
-                backupCount=backup_count)
+                self._env('HANDLERS_FILE_PATH'), maxBytes=max_bytes, backupCount=backup_count
+            )
         elif os.name == 'nt':
             handler = logging.FileHandler(self._env('HANDLERS_FILE_PATH'))
         else:
             handler = logging.handlers.WatchedFileHandler(self._env('HANDLERS_FILE_PATH'))
 
-        self.add_handler(
-            handler=handler,
-            name=name,
-            formatter=formatter,
-            level=level)
+        self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
 
     def add_syslog_handler(self):
         name = self._env('HANDLERS_SYSLOG_NAME', default='syslog')
@@ -479,15 +472,11 @@ class Wryte:
         handler = logging.handlers.SysLogHandler(
             address=address,
             facility=self._env('HANDLERS_SYSLOG_FACILITY', default='LOG_USER'),
-            socktype=socket.SOCK_STREAM if socket_type == 'tcp'
-            else socket.SOCK_DGRAM) # pytype: disable=wrong-arg-types
-            # See https://docs.python.org/3/library/logging.handlers.html#sysloghandler
+            socktype=socket.SOCK_STREAM if socket_type == 'tcp' else socket.SOCK_DGRAM,
+        )  # pytype: disable=wrong-arg-types
+        # See https://docs.python.org/3/library/logging.handlers.html#sysloghandler
 
-        self.add_handler(
-            handler=handler,
-            name=name,
-            formatter=formatter,
-            level=level)
+        self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
 
     def add_logzio_handler(self):
         if LOGZIO_INSTALLED:
@@ -500,16 +489,13 @@ class Wryte:
             formatter = self._env('HANDLERS_LOGZIO_FORMATTER', default='json')
             handler = LogzioHandler(self._env('HANDLERS_LOGZIO_TOKEN'))
 
-            self.add_handler(
-                handler=handler,
-                name=name,
-                formatter=formatter,
-                level=level)
+            self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
         else:
             self.logger.error(
                 'It seems that the logzio handler is not installed. '
                 'You can install it by running `pip install '
-                'wryte[logzio]`')
+                'wryte[logzio]`'
+            )
 
     def add_elasticsearch_handler(self):
         if ELASTICSEARCH_INSTALLED:
@@ -528,27 +514,20 @@ class Wryte:
                 host, port = es_host.split(':', 1)
                 hosts.append({'host': host, 'port': port})
 
-            handler_args = {
-                'hosts': hosts,
-                'auth_type': CMRESHandler.AuthType.NO_AUTH
-            }
+            handler_args = {'hosts': hosts, 'auth_type': CMRESHandler.AuthType.NO_AUTH}
 
             handler = CMRESHandler(**handler_args)
 
-            self.add_handler(
-                handler=handler,
-                name=name,
-                formatter=formatter,
-                level=level)
+            self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
         else:
             self.logger.error(
                 'It seems that the elasticsearch handler is not installed. '
                 'You can install it by running `pip install '
-                'wryte[elasticsearch]`')
+                'wryte[elasticsearch]`'
+            )
 
     def set_level(self, level):
-        """Set the current logger instance's level.
-        """
+        """Set the current logger instance's level."""
         if not self._assert_level(level):
             return
 
@@ -565,8 +544,7 @@ class Wryte:
             self._log.update(kwargs)
 
     def unbind(self, *keys):
-        """Unbind previously bound context.
-        """
+        """Unbind previously bound context."""
         for key in keys:
             # Perf-wise, we should try-except here since we expect
             # that 99% of the time the keys will exist so it will be faster.
@@ -646,57 +624,34 @@ class WryteError(Exception):
 
 
 def _split_kv(pair):
-    """Return dict for key=value.
-    """
+    """Return dict for key=value."""
     key_value = pair.split('=', 1)
     return {key_value[0]: key_value[1]}
 
 
 if CLI_ENABLED:
-    CLICK_CONTEXT_SETTINGS = dict(
-        help_option_names=['-h', '--help'],
-        token_normalize_func=lambda param: param.lower())
+    CLICK_CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'], token_normalize_func=lambda param: param.lower())
 
     @click.command(context_settings=CLICK_CONTEXT_SETTINGS)
     @click.argument('LEVEL')
     @click.argument('MESSAGE')
     @click.argument('OBJECTS', nargs=-1)
     @click.option(
-        '--pretty/--ugly',
-        is_flag=True,
-        default=True,
-        help='Output JSON instead of key=value pairs for console logger')
+        '--pretty/--ugly', is_flag=True, default=True, help='Output JSON instead of key=value pairs for console logger'
+    )
     @click.option(
         '-j',
         '--json',
         'jsonify',
         is_flag=True,
         default=False,
-        help='Use the JSON logger formatter instead of the console one')
-    @click.option(
-        '-n',
-        '--name',
-        type=click.STRING,
-        default='Wryte',
-        help="Change the default logger's name")
-    @click.option(
-        '--no-color',
-        is_flag=True,
-        default=False,
-        help='Disable coloring in console formatter')
-    @click.option(
-        '--simple',
-        is_flag=True,
-        default=False,
-        help='Log only message to the console')
+        help='Use the JSON logger formatter instead of the console one',
+    )
+    @click.option('-n', '--name', type=click.STRING, default='Wryte', help="Change the default logger's name")
+    @click.option('--no-color', is_flag=True, default=False, help='Disable coloring in console formatter')
+    @click.option('--simple', is_flag=True, default=False, help='Log only message to the console')
     def main(level, message, objects, pretty, jsonify, name, no_color, simple):
-        wryter = Wryte(
-            name=name,
-            pretty=pretty,
-            level=level,
-            jsonify=jsonify,
-            color=not no_color,
-            simple=simple)
+        wryter = Wryte(name=name, pretty=pretty, level=level, jsonify=jsonify, color=not no_color, simple=simple)
 
         objcts = []
 
@@ -705,13 +660,17 @@ if CLI_ENABLED:
             try:
                 json.loads(obj)
                 objcts.append(obj)
-            except Exception: # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except
                 if '=' in obj:
                     objcts.append(_split_kv(obj))
 
         getattr(wryter, level.lower())(message, *objcts)
+
+
 else:
+
     def main():
         sys.exit(
             "To use Wryte's CLI you must first install certain dependencies. "
-            "Please run `pip install wryte[cli]` to enable the CLI.")
+            "Please run `pip install wryte[cli]` to enable the CLI."
+        )
