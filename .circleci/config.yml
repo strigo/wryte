@@ -6,8 +6,9 @@ workflows:
       - test-3.7
       - test-3.6
       - test-3.5
-      - test-py3pylint
-      - test-py3pytype
+      - test-pylint
+      - test-pytype
+      - test-black
 
 jobs:
   test-3.7: &test-template
@@ -21,23 +22,23 @@ jobs:
       - run:
           name: Install test requirements
           command: |
-            python -m venv venv || virtualenv venv
-            . venv/bin/activate
-            pip install tox codecov
+            python3 -m venv .venv
+            . .venv/bin/activate
+            pip install -r dev-requirements.txt
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
-          - v1-dependencies-
+          - v2-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
+          - v2-dependencies-
       - run:
           name: Run tests
           command: |
-            . venv/bin/activate
+            . .venv/bin/activate
             make testone TOX_ENV=$TOX_ENV
       - run: . venv/bin/activate && codecov
       - save_cache:
           paths:
-            - .tox
-          key: v1-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
+            - .tox/$TOX_ENV
+          key: v2-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
 
   test-3.6:
     <<: *test-template
@@ -53,12 +54,17 @@ jobs:
     environment:
       - TOX_ENV: py35
 
-  test-py3pylint:
+  test-pylint:
     <<: *test-template
     environment:
-      - TOX_ENV: py3pylint
+      - TOX_ENV: pylint
 
-  test-py3pytype:
+  test-pytype:
     <<: *test-template
     environment:
-      - TOX_ENV: py3pytype
+      - TOX_ENV: pytype
+
+  test-black:
+    <<: *test-template
+    environment:
+      - TOX_ENV: black
