@@ -1,0 +1,23 @@
+repos:
+- repo: local
+  hooks:
+  - id: pylint
+    name: pylint
+    # Don't wanna deal with tests right now.
+    entry: pylint --ignore-patterns=test_.*?py
+    args: ["--score=n"]
+    language: python
+    types: [python]
+  - id: black
+    name: black
+    entry: black
+    language: python
+    require_serial: true
+    types: [python]
+  - id: pytype
+    name: pytype
+    entry: pytype
+    args: ["-d", "import-error"]
+    language: python
+    require_serial: true
+    types: [python]
