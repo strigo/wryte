@@ -45,20 +45,6 @@ try:
     CLI_ENABLED = True
 except ImportError:
     CLI_ENABLED = False
-
-try:
-    from logzio.handler import LogzioHandler
-
-    LOGZIO_INSTALLED = True
-except ImportError:
-    LOGZIO_INSTALLED = False
-
-try:
-    from cmreslogging.handlers import CMRESHandler
-
-    ELASTICSEARCH_INSTALLED = True
-except ImportError:
-    ELASTICSEARCH_INSTALLED = False
 # pytype: enable=import-error
 
 
@@ -339,17 +325,8 @@ class Wryte:
             else:
                 self.add_default_console_handler(level)
 
-        if self._env('HANDLERS_SYSLOG_ENABLED'):
-            self.add_syslog_handler()
-
-        if self._env('HANDLERS_LOGZIO_ENABLED'):
-            self.add_logzio_handler()
-
-        if self._env('HANDLERS_FILE_ENABLED'):
+        if self._env('HANDLERS_FILE_PATH'):
             self.add_file_handler()
-
-        if self._env('HANDLERS_ELASTICSEARCH_ENABLED'):
-            self.add_elasticsearch_handler()
 
     def _assert_level(self, level):
         levels = LEVEL_CONVERSION.keys()
@@ -447,84 +424,6 @@ class Wryte:
             handler = logging.handlers.WatchedFileHandler(self._env('HANDLERS_FILE_PATH'))
 
         self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
-
-    def add_syslog_handler(self):
-        name = self._env('HANDLERS_SYSLOG_NAME', default='syslog')
-        level = self._env('HANDLERS_SYSLOG_LEVEL', default='info')
-        formatter = self._env('HANDLERS_SYSLOG_FORMATTER', default='json')
-
-        syslog_host = self._env('HANDLERS_SYSLOG_HOST', default='localhost:514')
-        syslog_host = syslog_host.split(':', 1)
-
-        if len(syslog_host) == 2:
-            # Syslog listener
-            host, port = syslog_host
-            address = (host, port)
-        else:
-            # Unix socket or otherwise
-            address = syslog_host
-
-        socket_type = self._env('HANDLERS_SYSLOG_SOCKET_TYPE', default='udp')
-        if socket_type not in ('tcp', 'udp'):
-            self.logger.warning('syslog handler socket type must be one of tcp/udp')
-            return
-
-        handler = logging.handlers.SysLogHandler(
-            address=address,
-            facility=self._env('HANDLERS_SYSLOG_FACILITY', default='LOG_USER'),
-            socktype=socket.SOCK_STREAM if socket_type == 'tcp' else socket.SOCK_DGRAM,
-        )  # pytype: disable=wrong-arg-types
-        # See https://docs.python.org/3/library/logging.handlers.html#sysloghandler
-
-        self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
-
-    def add_logzio_handler(self):
-        if LOGZIO_INSTALLED:
-            if not self._env('HANDLERS_LOGZIO_TOKEN'):
-                self.logger.warning('Logzio handler token not set')
-                return
-
-            name = self._env('HANDLERS_LOGZIO_NAME', default='logzio')
-            level = self._env('HANDLERS_LOGZIO_LEVEL', default='info')
-            formatter = self._env('HANDLERS_LOGZIO_FORMATTER', default='json')
-            handler = LogzioHandler(self._env('HANDLERS_LOGZIO_TOKEN'))
-
-            self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
-        else:
-            self.logger.error(
-                'It seems that the logzio handler is not installed. '
-                'You can install it by running `pip install '
-                'wryte[logzio]`'
-            )
-
-    def add_elasticsearch_handler(self):
-        if ELASTICSEARCH_INSTALLED:
-            es_hosts = self._env('HANDLERS_ELASTICSEARCH_HOST')
-            if not es_hosts:
-                self.logger.warning('Elasticsearch handler host not set')
-                return
-
-            name = self._env('HANDLERS_ELASTICSEARCH_NAME', default='elasticsearch')
-            level = self._env('HANDLERS_ELASTICSEARCH_LEVEL', default='info')
-            formatter = self._env('HANDLER_ELASTICSEARCH_FORMATTER', default='json')
-
-            hosts = []
-            es_hosts = es_hosts.split(',')
-            for es_host in es_hosts:
-                host, port = es_host.split(':', 1)
-                hosts.append({'host': host, 'port': port})
-
-            handler_args = {'hosts': hosts, 'auth_type': CMRESHandler.AuthType.NO_AUTH}
-
-            handler = CMRESHandler(**handler_args)
-
-            self.add_handler(handler=handler, name=name, formatter=formatter, level=level)
-        else:
-            self.logger.error(
-                'It seems that the elasticsearch handler is not installed. '
-                'You can install it by running `pip install '
-                'wryte[elasticsearch]`'
-            )
 
     def set_level(self, level):
         """Set the current logger instance's level."""

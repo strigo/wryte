@@ -25,8 +25,6 @@ setup(
     extras_require={
         'color': ['colorama'],
         'cli': ['click>=6.7'],
-        'elasticsearch': ['CMRESHandler'],
-        'logzio': ['logzio-python-handler'],
     },
     classifiers=[
         'Programming Language :: Python',
