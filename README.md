@@ -54,14 +54,13 @@ pip install https://github.com/strigo/wryte/archive/master.tar.gz
 
 ### Getting Started
 
-This will log human readable messages to stdout and JSON to Elasticsearch:
+This will log human readable messages to stdout and JSON to a file:
 
 ```bash
-$ pip install wryte[elasticsearch]
+$ pip install wryte
 ...
 
-$ export WRYTE_HANDLERS_TYPE_ENABLED=true
-$ export WRYTE_HANDLERS_ELASTICSEARCH_HOST="https://es.dc1.service.consul:9200"
+$ export WRYTE_HANDLERS_FILE_PATH=log.txt
 ```
 
 ```python
@@ -70,10 +69,16 @@ from wryte import Wryte
 wryter = Wryte(name='app')
 wryter.info('My Message', key='value')
 
-# 2017-12-22T17:02:59.550920 - app - INFO - my message
+# 2020-11-20T21:37:00.268974 - app - INFO - My Message
 #  key=value
+
 ...
 
+```
+
+```shell
+$ cat log.txt
+{"name": "app", "hostname": "nir0s-x1", "pid": 29748, "type": "log", "message": "My Message", "level": "INFO", "timestamp": "2020-11-20T21:37:00.268974"}
 ```
 
 ### CLI
@@ -511,11 +516,9 @@ One of Wryte's goals is to provide a simple way to configure loggers. Much like 
 On top of having two default `console` and `json` handlers which indicate the formatting and both log to stdout, you can utilize built-in and 3rd party handlers quite easily.
 
 Below are the global env vars used to configure all loggers instantiated by Wryte.
-If you want to apply a handler to a specific logger, use the `WRYTE_$LOGGER_NAME_HANDLERS_*` pattern instead (e.g. `WRYTE_WEBLOGGER_HANDLERS_FILE_ENABLED` - all uppercase).
 
 For each handler, there are four basic env vars:
 
-* `WRYTE_HANDLERS_TYPE_ENABLED`   -> Enables the handler if set
 * `WRYTE_HANDLERS_TYPE_NAME`      -> The handler's name (defaults to `TYPE` in lowercase)
 * `WRYTE_HANDLERS_TYPE_LEVEL`     -> The handler's logging level (defaults to `info` unless explicitly stated otherwise)
 * `WRYTE_HANDLERS_TYPE_FORMATTER` -> The handler's formatter (`json` or `console`, defaults to `json`)
@@ -545,7 +548,7 @@ export WRYTE_CONSOLE_LEVEL will set the level, as with other handlers.
 Wryte supports both the rotating and watching file handlers (on Windows, FileHandler replaces WatchingFileHandler if not rotating).
 
 ```
-# (Required) Absolute path to the file logs should be written to
+# (Required - enables file logging) Absolute path to the file logs should be written to
 export WRYTE_HANDLERS_FILE_PATH=FILE_TO_LOG_TO
 
 # If set, will rotate files.
@@ -558,54 +561,12 @@ export WRYTE_HANDLERS_FILE_MAX_BYTES=13107200
 export WRYTE_HANDLERS_FILE_BACKUP_COUNT=7
 ```
 
-#### SYSLOG Handler
-
-Allows to emit logs to a Syslog server
-
-```
-# Colon separated syslog host string
-export WRYTE_HANDLERS_SYSLOG_HOST='localhost:514'
-
-export WRYTE_HANDLERS_SYSLOG_SOCKET_TYPE='udp'  # udp/tcp
-
-# Syslog facility to use (see https://success.trendmicro.com/solution/TP000086250-What-are-Syslog-Facilities-and-Levels)
-export WRYTE_HANDLERS_SYSLOG_FACILITY='LOG_USER'
-```
-
-#### ELASTICSEARCH Handler
-
-While it may be useful to send your messages through logstash, you may also log to Elasticsearch directly.
-
-Wryte utilizes the [CMRESHandler](https://github.com/cmanaha/python-elasticsearch-logger) for this.
-Currently, only the hosts can be supplied. SSL, index name pattern, etc.. will be added later.
-
-To install the handler, run `pip install wryte[elasticsearch]`.
-
-```
-# (Required) A comma-separated list of host:port pairs to use.
-export WRYTE_HANDLERS_ELASTICSEARCH_HOST=http://es.dc1.service.consul:9200,http://es.dc1.service.consul:9200
-```
-
-#### LOGZIO Handler
-
-You can also directly send your logs to logzio via the official [logzio handler](https://github.com/logzio/logzio-python-handler).
-
-To install the handler, run `pip install wryte[logzio]`.
-
-```
-# (Required) Your logzio API token
-export WRYTE_HANDLERS_LOGZIO_TOKEN=oim12o3i3ou2itj3jkdng3bgjs1gbg
-```
-
-See https://github.com/strigo/wryte/issues/10 and https://github.com/strigo/wryte/issues/18 for more info.
-
 #### Examples
 
 Logging to file:
 
 ```
-$ export WRYTE_HANDLERS_FILE_ENABLED=true
-$ export WRYTE_HANDLERS_FILE_PATH=log.file
+$ export WRYTE_HANDLERS_FILE_PATH=log.txt
 
 $ python wryte.py
 2018-02-18T08:56:27.921500 - Wryte - INFO - Logging an error level message:
@@ -625,7 +586,7 @@ $ python wryte.py
 2018-02-18T08:56:27.923088 - Wryte - ERROR - w00t
   bound2=value2
 
-$ cat log.file
+$ cat log.txt
 {"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.921500", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an error level message:"}
 {"name": "Wryte", "level": "ERROR", "timestamp": "2018-02-18T08:56:27.921898", "hostname": "my-host", "pid": 19220, "type": "log", "message": "w00t"}
 {"name": "Wryte", "level": "INFO", "timestamp": "2018-02-18T08:56:27.922055", "hostname": "my-host", "pid": 19220, "type": "log", "message": "Logging an event:"}
@@ -660,6 +621,6 @@ Not bad. I'll be optimizing for performance wherever possible.
 ```shell
 git clone git@github.com:strigo/wryte.git
 cd wryte
-pip install tox
+pip install -r dev-requirements
 tox
 ```
