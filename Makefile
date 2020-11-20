@@ -16,7 +16,7 @@
 PACKAGENAME = wryte
 
 # Default tox env when running `make testone`
-TOX_ENV ?= py36
+TOX_ENV ?= py37
 
 
 .PHONY: help
