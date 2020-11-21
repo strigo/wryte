@@ -1,3 +1,18 @@
+## 1.0.0 (2020.11.21)
+
+BACKWARD COMPATIBILITY:
+* Remove official Python 2.7 and 3.4 support [[ededefb](https://github.com/strigo/wryte/commit/ededefbf4d6e4667c2afdb73cb2be6c410e2e262)]
+* Remove Elasticsearch, syslog and logz.io handlers [[14f0a10](https://github.com/strigo/wryte/commit/14f0a10d52df2f9e347a26407bc283869ef069e9)]
+* Change the default env var that enables file logging to `HANDLERS_FILE_PATH` [[14f0a10](https://github.com/strigo/wryte/commit/14f0a10d52df2f9e347a26407bc283869ef069e9)]
+
+ENHANCEMENTS:
+* Blacken wryte.py [[7f44167](https://github.com/strigo/wryte/commit/7f4416736faffae2290518a30e2603139a8c4885)]
+
+RELEASE:
+* Optimize tox config and add black validation [[2793d7b](https://github.com/strigo/wryte/commit/2793d7bc9f7254aa9123ee4e99d7b6066ceec8e8)]
+* Add pre-commit config [[df03781](https://github.com/strigo/wryte/commit/df037814e80058b7eb62194fb4f2cc8d088e124f)]
+* Default to Python 3.7 when building and testing.
+
 ## 0.3.0 (2018.05.09)
 
 ENHANCEMENTS:
