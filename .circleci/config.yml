@@ -34,7 +34,7 @@ jobs:
           command: |
             . .venv/bin/activate
             make testone TOX_ENV=$TOX_ENV
-      - run: . venv/bin/activate && codecov
+      - run: . .venv/bin/activate && pip install codecov && codecov
       - save_cache:
           paths:
             - .tox/$TOX_ENV
