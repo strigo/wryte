@@ -3,8 +3,8 @@ environment:
   TOX_ENV: pywin
 
   matrix:
-    - PYTHON: C:\Python27
-      PYTHON_VERSION: 2.7.8
+    - PYTHON: C:\Python37
+      PYTHON_VERSION: 3.7.9
       PYTHON_ARCH: 32
 
 # init:
@@ -16,8 +16,8 @@ install:
  # Change Python Registry
   #################################
 
-  - reg ADD HKCU\Software\Python\PythonCore\2.7\InstallPath /ve /d "C:\Python27" /t REG_SZ /f
-  - reg ADD HKLM\Software\Python\PythonCore\2.7\InstallPath /ve /d "C:\Python27" /t REG_SZ /f
+  - reg ADD HKCU\Software\Python\PythonCore\3.7\InstallPath /ve /d "C:\Python37" /t REG_SZ /f
+  - reg ADD HKLM\Software\Python\PythonCore\3.7\InstallPath /ve /d "C:\Python37" /t REG_SZ /f
 
   #################################
   # Installing Inno Setup
