@@ -7,7 +7,6 @@ workflows:
       - test-3.6
       - test-3.5
       - test-pylint
-      - test-pytype
       - test-black
 
 jobs:
@@ -58,11 +57,6 @@ jobs:
     <<: *test-template
     environment:
       - TOX_ENV: pylint
-
-  test-pytype:
-    <<: *test-template
-    environment:
-      - TOX_ENV: pytype
 
   test-black:
     <<: *test-template
