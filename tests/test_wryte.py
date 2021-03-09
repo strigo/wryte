@@ -14,8 +14,7 @@ from wryte import Wryte
 def _invoke(command):
     cli = clicktest.CliRunner()
 
-    lexed_command = command if isinstance(command, list) \
-        else shlex.split(command)
+    lexed_command = command if isinstance(command, list) else shlex.split(command)
     func = lexed_command[0]
     params = lexed_command[1:]
     return cli.invoke(getattr(wryte, func), params)
@@ -61,7 +60,8 @@ class TestWryte(object):
             {'k7': 'v7', 'k8': {'k9': 'v9'}},
             '{"k5": "v5", "k6": "v6"}',
             'bla',
-            k1='v1', k2='v2',
+            k1='v1',
+            k2='v2',
         )
 
     def test_logging_levels(self):
@@ -105,11 +105,7 @@ class TestWryte(object):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
         assert len(w.list_handlers()) == 0
 
-        name = w.add_handler(
-            handler=logging.StreamHandler(sys.stdout),
-            name='_json',
-            formatter='json',
-            level='debug')
+        name = w.add_handler(handler=logging.StreamHandler(sys.stdout), name='_json', formatter='json', level='debug')
 
         assert len(w.list_handlers()) == 1
         assert w.list_handlers() == ['_json']
@@ -118,20 +114,14 @@ class TestWryte(object):
 
     def test_add_handler_bad_level(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
-        w.add_handler(
-            handler=logging.StreamHandler(sys.stdout),
-            name='_json',
-            formatter='json',
-            level='BOOBOO')
+        w.add_handler(handler=logging.StreamHandler(sys.stdout), name='_json', formatter='json', level='BOOBOO')
         assert len(w.list_handlers()) == 0
 
     def test_another_formatter(self):
         w = Wryte(name=str(uuid.uuid4()), bare=True)
         w.add_handler(
-            handler=logging.StreamHandler(sys.stdout),
-            name='_json',
-            formatter=wryte.ConsoleFormatter(),
-            level='info')
+            handler=logging.StreamHandler(sys.stdout), name='_json', formatter=wryte.ConsoleFormatter(), level='info'
+        )
 
     def test_list_handlers(self):
         w = Wryte(name=str(uuid.uuid4()))
