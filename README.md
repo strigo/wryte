@@ -6,6 +6,7 @@ Wryte
 [![PyPI Version](http://img.shields.io/pypi/v/wryte.svg)](http://img.shields.io/pypi/v/wryte.svg)
 [![Supported Python Versions](https://img.shields.io/pypi/pyversions/wryte.svg)](https://img.shields.io/pypi/pyversions/wryte.svg)
 [![Requirements Status](https://requires.io/github/strigo/wryte/requirements.svg?branch=master)](https://requires.io/github/strigo/wryte/requirements/?branch=master)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/3f32a50da8bd4fbab4017b3780d4adec)](https://www.codacy.com/gh/strigo/wryte/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=strigo/wryte&amp;utm_campaign=Badge_Grade)
 [![Code Coverage](https://codecov.io/github/strigo/wryte/coverage.svg?branch=master)](https://codecov.io/github/strigo/wryte?branch=master)
 [![Maintainability](https://api.codeclimate.com/v1/badges/423b4eee9ba182fecd84/maintainability)](https://codeclimate.com/github/strigo/wryte/maintainability)
 [![Is Wheel](https://img.shields.io/pypi/wheel/wryte.svg?style=flat)](https://pypi.python.org/pypi/wryte)
