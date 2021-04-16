@@ -3,9 +3,10 @@ workflows:
   version: 2
   test:
     jobs:
+      - test-3.9
+      - test-3.8
       - test-3.7
       - test-3.6
-      - test-3.5
       - test-pylint
       - test-black
 
@@ -46,12 +47,19 @@ jobs:
     environment:
       - TOX_ENV: py36
 
-  test-3.5:
+  test-3.8:
     <<: *test-template
     docker:
-      - image: cimg/python:3.5
+      - image: cimg/python:3.8
     environment:
-      - TOX_ENV: py35
+      - TOX_ENV: py38
+
+  test-3.9:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.9
+    environment:
+      - TOX_ENV: py39
 
   test-pylint:
     <<: *test-template
