@@ -1,6 +1,6 @@
 .[cli]
 .[color]
-tox==3.23.0
+tox==3.23.1
 pylint==2.8.2; python_version > '3.5'
 pytest==6.2.2; python_version > '3.5'
 pytest-cov==2.11.1
