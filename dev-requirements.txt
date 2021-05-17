@@ -5,4 +5,4 @@ pylint==2.8.2; python_version > '3.5'
 pytest==6.2.2; python_version > '3.5'
 pytest-cov==2.11.1
 pre-commit==2.12.1; python_version > '3.5'
-black==21.5b0; python_version > '3.5'
+black==21.5b1; python_version > '3.5'
