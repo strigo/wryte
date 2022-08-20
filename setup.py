@@ -24,7 +24,7 @@ setup(
     entry_points={'console_scripts': ['wryte = wryte:main']},
     extras_require={
         'color': ['colorama'],
-        'cli': ['click>=6.7'],
+        'cli': ['click>=7.0'],
     },
     classifiers=[
         'Programming Language :: Python',
