@@ -14,10 +14,3 @@ repos:
     language: python
     require_serial: true
     types: [python]
-  - id: pytype
-    name: pytype
-    entry: pytype
-    args: ["-d", "import-error"]
-    language: python
-    require_serial: true
-    types: [python]
