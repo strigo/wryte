@@ -1,3 +1,16 @@
+## 2.0.0 (TBD)
+
+BACKWARD COMPATIBILITY:
+* Remove official Python 3.5 and 3.6 support
+
+RELEASE:
+* Test on Python v3.10
+* Update classifiers
+* Update relevant click version
+* Upgrade dev requirements
+* Remove unusued pytype
+
+
 ## 1.0.0 (2020.11.21)
 
 BACKWARD COMPATIBILITY:
