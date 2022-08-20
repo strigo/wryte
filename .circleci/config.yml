@@ -7,7 +7,6 @@ workflows:
       - test-3.9
       - test-3.8
       - test-3.7
-      - test-3.6
       - test-pylint
       - test-black
 
@@ -40,13 +39,6 @@ jobs:
           paths:
             - .tox/$TOX_ENV
           key: v2-dependencies-{{ checksum "setup.py" }}-{{ checksum "dev-requirements.txt" }}
-
-  test-3.6:
-    <<: *test-template
-    docker:
-      - image: cimg/python:3.6
-    environment:
-      - TOX_ENV: py36
 
   test-3.8:
     <<: *test-template

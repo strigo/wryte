@@ -38,7 +38,7 @@ Note that the following documentation relates to the code currently in the maste
 
 ## Installation
 
-Wryte supports Linux, Windows and OSX on Python 3.5+
+Wryte supports Linux, Windows and OSX on Python 3.7+
 
 ```shell
 pip install wryte
