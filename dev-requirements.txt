@@ -1,8 +1,8 @@
 .[cli]
 .[color]
-tox==3.23.1
-pylint==2.8.3; python_version > '3.5'
-pytest==6.2.4; python_version > '3.5'
-pytest-cov==2.12.0
-pre-commit==2.13.0; python_version > '3.5'
-black==21.5b2; python_version > '3.5'
+tox==3.25.1
+pylint==2.14.5
+pytest==7.1.2
+pytest-cov==3.0.0
+pre-commit==2.20.0
+black==22.6.0
