@@ -565,7 +565,6 @@ if CLI_ENABLED:
 
         getattr(wryter, level.lower())(message, *objcts)
 
-
 else:
 
     def main():
